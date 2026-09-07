@@ -1,0 +1,32 @@
+paths: 
+  BIOSKIN_REPO: null
+  MODEL_PREFIX: "D:\\Github\\PhD Code\\Erythema-Progression\\BioSkin\\BioSkinAO"
+  ALBEDO_PATH: "D:\\Github\\PhD Code\\Erythema-Progression\\data\\000022.png"
+  OUTPUT_DIR: "D:\\Github\\PhD Code\\Erythema-Progression\\output"
+  mask : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\major_valid_whole_mask.png"
+  mask_cen : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\center_face_mask.png"
+  mask_left : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\major_valid_left_mask.png"
+  mask_right : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\major_valid_right_mask.png"
+  mask_front : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\major_valid_front_mask.png"
+  mask_mouth : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\mouth_constract_mask.png"
+  mask_nosal : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\nosal_base_mask.png"
+  mask_nostril : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\nostril_mask.png"
+
+chromophore_parameter:
+  MELANIN_INDEX: 0
+  HEMOGLOBIN_INDEX: 1
+  EPIDERMIS_THICKNESS_INDEX: 2
+  EUMELANIN_RATIO_INDEX: 3
+  OXYGENATION_INDEX: 4
+
+mask_parameter:
+  MASK_CX_FRAC: 0.50
+  MASK_CY_FRAC: 0.50
+  MASK_RAD_FRAC: 0.12
+  MASK_FEATHER: 1.5
+  COMPOSITE_AMP: null
+
+amplitude_parameter:
+  AMP_START: 0.0
+  AMP_STOP: 0.15
+  AMP_STEP: 0.01
