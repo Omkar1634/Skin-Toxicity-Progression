@@ -1,7 +1,7 @@
 paths: 
   BIOSKIN_REPO: null
   MODEL_PREFIX: "D:\\Github\\PhD Code\\Erythema-Progression\\BioSkin\\BioSkinAO"
-  ALBEDO_PATH: "D:\\Github\\PhD Code\\Erythema-Progression\\data\\000190.png"
+  ALBEDO_PATH: "D:\\Github\\PhD Code\\Erythema-Progression\\data\\000037.png"
   OUTPUT_DIR: "D:\\Github\\PhD Code\\Erythema-Progression\\output"
   mask : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\major_valid_whole_mask.png"
   mask_cen : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\center_face_mask.png"
@@ -24,9 +24,9 @@ mask_parameter:
   MASK_CY_FRAC: 0.50
   MASK_RAD_FRAC: 0.12
   MASK_FEATHER: 1.5
-  COMPOSITE_AMP: null
+  COMPOSITE_AMP: None
 
 amplitude_parameter:
-  AMP_START: 0.0
+  AMP_START: 0.01
   AMP_STOP: 0.15
-  AMP_STEP: 0.01
+  AMP_STEP: 0.02

@@ -69,7 +69,7 @@ A = cfg["amplitude_parameter"]
 MA = cfg["mask_parameter"]
 
 
-COMPOSITE_AMP = 0
+COMPOSITE_AMP = None
 
 MAX_WIDTH    = 800
 BATCH_SIZE   = 512000
@@ -115,11 +115,20 @@ def main():
     mask_flat = torch.from_numpy(mask.reshape(-1)).to(device)
     inside = mask.reshape(-1) > 0.5
     outside = ~inside
-    io.save_tensor_to_image(os.path.join(prog_dir, "mask_binary"),
-                            (mask_flat > 0.5).float(), shape, channels=1, cpu=use_cpu)
+    # io.save_tensor_to_image(os.path.join(prog_dir, "mask_binary"), (mask_flat > 0.5).float(), shape, channels=1, cpu=use_cpu)
+    
+    # keep the binary for reference if you like, but also save the feathered one:
+    io.save_tensor_to_image(os.path.join(prog_dir, "mask_feathered"),
+                        mask_flat.float(), shape, channels=1, cpu=use_cpu)
 
     hemo_clean_in    = in_mask_mean(skin_props[:, C["HEMOGLOBIN_INDEX"]], inside)
+    print(f"[p1] Original Hemoglobin = {hemo_clean_in:.4f}")
     melanin_clean_in = in_mask_mean(skin_props[:, C["MELANIN_INDEX"]], inside)
+    print(f"[p1] Original Melanin = {melanin_clean_in:.4f}")
+    oxy_clean_in    = in_mask_mean(skin_props[:, C["OXYGENATION_INDEX"]], inside)
+    print(f"[p1] Original Oxygenation = {oxy_clean_in:.4f}")
+
+    
 
     # -- Severity sweep --
     levels = np.round(np.arange(A["AMP_START"], A["AMP_STOP"] + A["AMP_STEP"] / 2.0, A["AMP_STEP"]), 3)
@@ -130,12 +139,13 @@ def main():
 
     rows = []
     print(f"\n  {'idx':>3} {'amp':>6} {'contrast':>9} "
-          f"{'hemoIn->':>9} {'after':>7} {'melDrift':>9} {'outDrift':>9}")
+          f"{'hemoIn->':>9} {'after':>7} {'melDrift':>9} {'outDrift':>9} {'oxyDrift':>9}")
     print("  " + "-" * 60)
 
     for i, amp in enumerate(levels, start=1):
         residual = float(amp) * mask_flat
         sp = skin_props.clone()
+        
         sp[:, C["HEMOGLOBIN_INDEX"]] = torch.clamp(sp[:, C["HEMOGLOBIN_INDEX"]] + residual, 0.0, 1.0)
 
         _, flush_rgb, _, _ = bio_skin.skin_props_to_reflectance(sp)
@@ -144,7 +154,7 @@ def main():
                                 flush_rgb, shape, channels=3, cpu=use_cpu)
 
         diff = (flush_rgb - ref_vis_rgb)[inside]
-        contrast = float(torch.sqrt((diff ** 2).sum(dim=1)).mean())
+        contrast = float(torch.sqrt((diff ** 2).sum(dim=1)).mean().detach())
 
         sp_check = bio_skin.reflectance_to_skin_props(flush_rgb.float())
         hemo_after_in = in_mask_mean(sp_check[:, C["HEMOGLOBIN_INDEX"]], inside)
@@ -153,15 +163,17 @@ def main():
         hemo_out_after  = in_mask_mean(sp_check[:, C["HEMOGLOBIN_INDEX"]], outside)
         mel_drift = mel_after_in - melanin_clean_in
         out_drift = hemo_out_after - hemo_out_before
+        oxy_after_in = in_mask_mean(sp_check[:, C["OXYGENATION_INDEX"]], inside)
+        oxy_drift    = oxy_after_in - oxy_clean_in
 
-        print(f"  {i:>3} {amp:>6.2f} {contrast:>9.4f} "
-              f"{hemo_clean_in:>9.4f} {hemo_after_in:>7.4f} "
-              f"{mel_drift:>+9.4f} {out_drift:>+9.4f}")
+        print(f"  {i:>3} {amp:>6.2f} {contrast:>9.4f} " f"{hemo_clean_in:>9.4f} {hemo_after_in:>7.4f} " 
+              f"{mel_drift:>+9.4f} {out_drift:>+9.4f} {oxy_drift:>+9.4f}")
 
         rows.append({
             'index': i, 'residual_amp': float(amp), 'in_mask_contrast': contrast,
             'hemo_in_clean': hemo_clean_in, 'hemo_in_after': hemo_after_in,
             'melanin_drift_in': mel_drift, 'hemo_drift_out': out_drift,
+            'oxy_drift': oxy_drift
         })
 
         # capture edited params for the composite at the chosen level
