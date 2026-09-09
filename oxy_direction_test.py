@@ -25,8 +25,9 @@ def _in_mask_mean(col, inside_bool):
 def _in_mask_redness(flush_rgb, inside_bool):
     """R - (G+B)/2 over masked pixels. BioSkin output is RGB order (0=R,1=G,2=B)."""
     x = flush_rgb.detach().cpu().numpy()
-    r, g, b = x[:, 0], x[:, 1], x[:, 2]
-    return float((r - 0.5 * (g + b))[inside_bool].mean())
+    # CORRECT — BGR order (cv2 EXR output)
+    b, g, r = x[:, 0], x[:, 1], x[:, 2]
+    return float((r - 0.5 * (b + g))[inside_bool].mean())
 
 
 def run_oxy_direction_test(skin_props, mask_flat, inside, outside,
@@ -44,8 +45,8 @@ def run_oxy_direction_test(skin_props, mask_flat, inside, outside,
     if oxy_levels is None:
         oxy_levels = np.round(np.arange(-0.15, 0.15 + 1e-9, 0.02), 3)
 
-    HEMO = C["HEMOGLOBIN_INDEX"]
-    OXY  = C["OXYGENATION_INDEX"]
+    HEMO = C["BLOOD_VOLUME_INDEX"]
+    OXY  = C["HAEMO_TYPE_INDEX"]
     MEL  = C["MELANIN_INDEX"]
 
     hemo_clean_in = _in_mask_mean(skin_props[:, HEMO], inside)

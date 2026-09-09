@@ -1,0 +1,298 @@
+
+(ldm_pretrain) D:\Github\PhD Code\Erythema-Progression>python erythema_sweep.py
+[init] device = cuda
+Loading model in D:\Github\PhD Code\Erythema-Progression\BioSkin\BioSkinAO
+Loading Training Parameters
+{'color_mode': 'spectral', 'param_mode': 'linear', 'network_structure': 2, 'exposure_aware': True, 'loss_mode': 'visible_range', 'loss_params': 'MSE', 'loss_color': 'sam', 'loss_color_full_cycle': 'l1', 'w_p': 1.0, 'w_e': 1.0, 'w_a': 1.0, 'w_full': 1.0, 'n_epochs': 500, 'learning_rate': 0.0001, 'learning_rate_update': 10, 'batch_size': 256, 'writing_rate': 1, 'D_rgb': 3, 'H_enc': 70, 'H_dec': 512, 'wavelength_begin': 380, 'wavelength_end': 1000, 'spectral_resolution': 2, 'D_skin': 5, 'D_spec': 310, 'visible_range_limit': 200}
+Device: cuda(1)
+Using 1 GPUs
+D:\Github\PhD Code\Erythema-Progression\data\000000.png
+Image size:  (1024, 1024, 3)
+Downsampling image D:\Github\PhD Code\Erythema-Progression\data\000000.png to 800
+[p1] skin_props.shape = (640000, 6)
+[p1] reconstruction error = 0.005232
+[info] building butterfly mask for 800x800...
+[info] butterfly mask built completed ...
+[p1] Original Hemoglobin = 0.4578
+[p1] Original Melanin = 0.2066
+[p1] Original Oxygenation = 0.4838
+[p1] Original Eumelanin = 0.6239
+ amplitude start: 0.010, stop: 0.150, step: 0.020
+
+[sweep] amplitude levels: [0.01, 0.03, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15]
+[sweep] target amplitude: 0.15
+
+ OXY boost at 0.000
+
+ EU boost at 0.100
+
+[hemoA] hemoglobin at 0.46 (constant every frame)
+[hemoA] sweeping hemoglobin over [0.01, 0.03, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15]
+
+  idx    amp  contrast  hemoIn->   after  melDrift  outDrift oxyOutDrift euOutDrift   redness
+  ------------------------------------------------------------------------
+    1   0.01    0.0317    0.4578  0.4905   +0.0117   +0.0008   -0.0208    +0.0310   +0.2768 
+    2   0.03    0.0158    0.4578  0.5097   +0.0112   +0.0010   -0.0208    +0.0311   +0.2700 
+    3   0.05    0.0168    0.4578  0.5283   +0.0105   +0.0012   -0.0208    +0.0311   +0.2625 
+    4   0.07    0.0331    0.4578  0.5465   +0.0094   +0.0015   -0.0208    +0.0312   +0.2545 
+    5   0.09    0.0518    0.4578  0.5645   +0.0081   +0.0017   -0.0207    +0.0312   +0.2459 
+    6   0.11    0.0711    0.4578  0.5824   +0.0065   +0.0019   -0.0207    +0.0312   +0.2369 
+    7   0.13    0.0905    0.4578  0.6004   +0.0047   +0.0021   -0.0207    +0.0313   +0.2276 
+    8   0.15    0.1099    0.4578  0.6182   +0.0028   +0.0024   -0.0207    +0.0313   +0.2179 
+
+[out] CSV -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\oo\progression\2026-09-09_13-31-51\erythema_sweep.csv
+[out] montage -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\oo\progression\2026-09-09_13-31-51\erythema_progression_montage.jpeg
+[out] control curve -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\oo\progression\2026-09-09_13-31-51\erythema_control_curve.png
+[out] control curve -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\oo\progression\2026-09-09_13-31-51\erythema_control_allcurve.png
+[out] chromophore composite -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\oo\progression\2026-09-09_13-31-51\erythema_chromophore_composite.png
+
+[composite] in-mask mean delta per chromophore (edited - clean):
+    melanin                +0.0000  (should be ~0)
+    hemoglobin             +0.1432  <-- target
+    epidermal_thickness    +0.0000
+    eumelanin_ratio        +0.0955
+    oxygenation            +0.0000
+
+DONE. Outputs in: D:\Github\PhD Code\Erythema-Progression\output\different_skin\oo
+
+(ldm_pretrain) D:\Github\PhD Code\Erythema-Progression>python erythema_sweep.py
+[init] device = cuda
+Loading model in D:\Github\PhD Code\Erythema-Progression\BioSkin\BioSkinAO
+Loading Training Parameters
+{'color_mode': 'spectral', 'param_mode': 'linear', 'network_structure': 2, 'exposure_aware': True, 'loss_mode': 'visible_range', 'loss_params': 'MSE', 'loss_color': 'sam', 'loss_color_full_cycle': 'l1', 'w_p': 1.0, 'w_e': 1.0, 'w_a': 1.0, 'w_full': 1.0, 'n_epochs': 500, 'learning_rate': 0.0001, 'learning_rate_update': 10, 'batch_size': 256, 'writing_rate': 1, 'D_rgb': 3, 'H_enc': 70, 'H_dec': 512, 'wavelength_begin': 380, 'wavelength_end': 1000, 'spectral_resolution': 2, 'D_skin': 5, 'D_spec': 310, 'visible_range_limit': 200}
+Device: cuda(1)
+Using 1 GPUs
+D:\Github\PhD Code\Erythema-Progression\data\000022.png
+Image size:  (1024, 1024, 3)
+Downsampling image D:\Github\PhD Code\Erythema-Progression\data\000022.png to 800
+[p1] skin_props.shape = (640000, 6)
+[p1] reconstruction error = 0.003418
+[info] building butterfly mask for 800x800...
+[info] butterfly mask built completed ...
+[p1] Original Hemoglobin = 0.5725
+[p1] Original Melanin = 0.3552
+[p1] Original Oxygenation = 0.4537
+[p1] Original Eumelanin = 0.7248
+ amplitude start: 0.010, stop: 0.150, step: 0.020
+
+[sweep] amplitude levels: [0.01, 0.03, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15]
+[sweep] target amplitude: 0.15
+
+ OXY boost at 0.000
+
+ EU boost at 0.100
+
+[hemoA] hemoglobin at 0.57 (constant every frame)
+[hemoA] sweeping hemoglobin over [0.01, 0.03, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15]
+
+  idx    amp  contrast  hemoIn->   after  melDrift  outDrift oxyOutDrift euOutDrift   redness
+  ------------------------------------------------------------------------
+    1   0.01    0.0205    0.5725  0.5800   +0.0136   -0.0103   -0.0206    +0.0144   +0.2363 
+    2   0.03    0.0079    0.5725  0.5946   +0.0142   -0.0101   -0.0205    +0.0144   +0.2267 
+    3   0.05    0.0147    0.5725  0.6082   +0.0147   -0.0100   -0.0205    +0.0143   +0.2172 
+    4   0.07    0.0287    0.5725  0.6207   +0.0149   -0.0098   -0.0205    +0.0143   +0.2077 
+    5   0.09    0.0430    0.5725  0.6322   +0.0149   -0.0097   -0.0205    +0.0143   +0.1984 
+    6   0.11    0.0569    0.5725  0.6425   +0.0146   -0.0095   -0.0204    +0.0143   +0.1892 
+    7   0.13    0.0702    0.5725  0.6518   +0.0140   -0.0094   -0.0204    +0.0142   +0.1804 
+    8   0.15    0.0829    0.5725  0.6600   +0.0131   -0.0092   -0.0204    +0.0142   +0.1718 
+
+[out] CSV -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\22\progression\2026-09-09_13-33-18\erythema_sweep.csv
+[out] montage -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\22\progression\2026-09-09_13-33-18\erythema_progression_montage.jpeg
+[out] control curve -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\22\progression\2026-09-09_13-33-18\erythema_control_curve.png
+[out] control curve -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\22\progression\2026-09-09_13-33-18\erythema_control_allcurve.png
+[out] chromophore composite -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\22\progression\2026-09-09_13-33-18\erythema_chromophore_composite.png
+
+[composite] in-mask mean delta per chromophore (edited - clean):
+    melanin                +0.0000  (should be ~0)
+    hemoglobin             +0.1432  <-- target
+    epidermal_thickness    +0.0000
+    eumelanin_ratio        +0.0955
+    oxygenation            +0.0000
+
+DONE. Outputs in: D:\Github\PhD Code\Erythema-Progression\output\different_skin\22
+
+(ldm_pretrain) D:\Github\PhD Code\Erythema-Progression>python erythema_sweep.py
+[init] device = cuda
+Loading model in D:\Github\PhD Code\Erythema-Progression\BioSkin\BioSkinAO
+Loading Training Parameters
+{'color_mode': 'spectral', 'param_mode': 'linear', 'network_structure': 2, 'exposure_aware': True, 'loss_mode': 'visible_range', 'loss_params': 'MSE', 'loss_color': 'sam', 'loss_color_full_cycle': 'l1', 'w_p': 1.0, 'w_e': 1.0, 'w_a': 1.0, 'w_full': 1.0, 'n_epochs': 500, 'learning_rate': 0.0001, 'learning_rate_update': 10, 'batch_size': 256, 'writing_rate': 1, 'D_rgb': 3, 'H_enc': 70, 'H_dec': 512, 'wavelength_begin': 380, 'wavelength_end': 1000, 'spectral_resolution': 2, 'D_skin': 5, 'D_spec': 310, 'visible_range_limit': 200}
+Device: cuda(1)
+Using 1 GPUs
+D:\Github\PhD Code\Erythema-Progression\data\000037.png
+Image size:  (1024, 1024, 3)
+Downsampling image D:\Github\PhD Code\Erythema-Progression\data\000037.png to 800
+[p1] skin_props.shape = (640000, 6)
+[p1] reconstruction error = 0.003341
+[info] building butterfly mask for 800x800...
+[info] butterfly mask built completed ...
+[p1] Original Hemoglobin = 0.3588
+[p1] Original Melanin = 0.3979
+[p1] Original Oxygenation = 0.4176
+[p1] Original Eumelanin = 0.6678
+ amplitude start: 0.010, stop: 0.150, step: 0.020
+
+[sweep] amplitude levels: [0.01, 0.03, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15]
+[sweep] target amplitude: 0.15
+
+ OXY boost at 0.000
+
+ EU boost at 0.100
+
+[hemoA] hemoglobin at 0.36 (constant every frame)
+[hemoA] sweeping hemoglobin over [0.01, 0.03, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15]
+
+  idx    amp  contrast  hemoIn->   after  melDrift  outDrift oxyOutDrift euOutDrift   redness
+  ------------------------------------------------------------------------
+    1   0.01    0.0124    0.3588  0.3736   -0.0012   -0.0103   -0.0176    +0.0056   +0.2959 
+    2   0.03    0.0115    0.3588  0.3917   -0.0002   -0.0101   -0.0176    +0.0057   +0.2886 
+    3   0.05    0.0252    0.3588  0.4099   +0.0008   -0.0099   -0.0175    +0.0057   +0.2812 
+    4   0.07    0.0406    0.3588  0.4282   +0.0017   -0.0097   -0.0175    +0.0058   +0.2736 
+    5   0.09    0.0561    0.3588  0.4466   +0.0027   -0.0095   -0.0175    +0.0058   +0.2658 
+    6   0.11    0.0713    0.3588  0.4650   +0.0038   -0.0093   -0.0174    +0.0058   +0.2579 
+    7   0.13    0.0864    0.3588  0.4832   +0.0049   -0.0091   -0.0174    +0.0059   +0.2498 
+    8   0.15    0.1014    0.3588  0.5012   +0.0059   -0.0088   -0.0174    +0.0059   +0.2415 
+
+[out] CSV -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\37\progression\2026-09-09_13-33-46\erythema_sweep.csv
+[out] montage -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\37\progression\2026-09-09_13-33-46\erythema_progression_montage.jpeg
+[out] control curve -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\37\progression\2026-09-09_13-33-46\erythema_control_curve.png
+[out] control curve -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\37\progression\2026-09-09_13-33-46\erythema_control_allcurve.png
+[out] chromophore composite -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\37\progression\2026-09-09_13-33-46\erythema_chromophore_composite.png
+
+[composite] in-mask mean delta per chromophore (edited - clean):
+    melanin                +0.0000  (should be ~0)
+    hemoglobin             +0.1432  <-- target
+    epidermal_thickness    +0.0000
+    eumelanin_ratio        +0.0955
+    oxygenation            +0.0000
+
+DONE. Outputs in: D:\Github\PhD Code\Erythema-Progression\output\different_skin\37
+
+(ldm_pretrain) D:\Github\PhD Code\Erythema-Progression>python erythema_sweep.py
+[init] device = cuda
+Loading model in D:\Github\PhD Code\Erythema-Progression\BioSkin\BioSkinAO
+Loading Training Parameters
+{'color_mode': 'spectral', 'param_mode': 'linear', 'network_structure': 2, 'exposure_aware': True, 'loss_mode': 'visible_range', 'loss_params': 'MSE', 'loss_color': 'sam', 'loss_color_full_cycle': 'l1', 'w_p': 1.0, 'w_e': 1.0, 'w_a': 1.0, 'w_full': 1.0, 'n_epochs': 500, 'learning_rate': 0.0001, 'learning_rate_update': 10, 'batch_size': 256, 'writing_rate': 1, 'D_rgb': 3, 'H_enc': 70, 'H_dec': 512, 'wavelength_begin': 380, 'wavelength_end': 1000, 'spectral_resolution': 2, 'D_skin': 5, 'D_spec': 310, 'visible_range_limit': 200}
+Device: cuda(1)
+Using 1 GPUs
+D:\Github\PhD Code\Erythema-Progression\data\000045.png
+Image size:  (1024, 1024, 3)
+Downsampling image D:\Github\PhD Code\Erythema-Progression\data\000045.png to 800
+[p1] skin_props.shape = (640000, 6)
+[p1] reconstruction error = 0.002802
+[info] building butterfly mask for 800x800...
+[info] butterfly mask built completed ...
+[p1] Original Hemoglobin = 0.3988
+[p1] Original Melanin = 0.3801
+[p1] Original Oxygenation = 0.4402
+[p1] Original Eumelanin = 0.5716
+ amplitude start: 0.010, stop: 0.150, step: 0.020
+
+[sweep] amplitude levels: [0.01, 0.03, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15]
+[sweep] target amplitude: 0.15
+
+ OXY boost at 0.000
+
+ EU boost at 0.100
+
+[hemoA] hemoglobin at 0.40 (constant every frame)
+[hemoA] sweeping hemoglobin over [0.01, 0.03, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15]
+
+  idx    amp  contrast  hemoIn->   after  melDrift  outDrift oxyOutDrift euOutDrift   redness
+  ------------------------------------------------------------------------
+    1   0.01    0.0106    0.3988  0.4187   +0.0065   -0.0054   -0.0200    +0.0181   +0.2161 
+    2   0.03    0.0096    0.3988  0.4372   +0.0070   -0.0052   -0.0199    +0.0181   +0.2082 
+    3   0.05    0.0219    0.3988  0.4556   +0.0076   -0.0050   -0.0199    +0.0181   +0.2003 
+    4   0.07    0.0358    0.3988  0.4740   +0.0083   -0.0047   -0.0199    +0.0182   +0.1924 
+    5   0.09    0.0495    0.3988  0.4921   +0.0089   -0.0045   -0.0198    +0.0182   +0.1846 
+    6   0.11    0.0628    0.3988  0.5098   +0.0096   -0.0043   -0.0198    +0.0182   +0.1769 
+    7   0.13    0.0758    0.3988  0.5270   +0.0102   -0.0041   -0.0198    +0.0183   +0.1692 
+    8   0.15    0.0885    0.3988  0.5436   +0.0108   -0.0039   -0.0197    +0.0183   +0.1616 
+
+[out] CSV -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\45\progression\2026-09-09_13-34-20\erythema_sweep.csv
+[out] montage -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\45\progression\2026-09-09_13-34-20\erythema_progression_montage.jpeg
+[out] control curve -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\45\progression\2026-09-09_13-34-20\erythema_control_curve.png
+[out] control curve -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\45\progression\2026-09-09_13-34-20\erythema_control_allcurve.png
+[out] chromophore composite -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\45\progression\2026-09-09_13-34-20\erythema_chromophore_composite.png
+
+[composite] in-mask mean delta per chromophore (edited - clean):
+    melanin                +0.0000  (should be ~0)
+    hemoglobin             +0.1432  <-- target
+    epidermal_thickness    +0.0000
+    eumelanin_ratio        +0.0955
+    oxygenation            +0.0000
+
+DONE. Outputs in: D:\Github\PhD Code\Erythema-Progression\output\different_skin\45
+
+(ldm_pretrain) D:\Github\PhD Code\Erythema-Progression>python erythema_sweep.py
+[init] device = cuda
+Loading model in D:\Github\PhD Code\Erythema-Progression\BioSkin\BioSkinAO
+Loading Training Parameters
+{'color_mode': 'spectral', 'param_mode': 'linear', 'network_structure': 2, 'exposure_aware': True, 'loss_mode': 'visible_range', 'loss_params': 'MSE', 'loss_color': 'sam', 'loss_color_full_cycle': 'l1', 'w_p': 1.0, 'w_e': 1.0, 'w_a': 1.0, 'w_full': 1.0, 'n_epochs': 500, 'learning_rate': 0.0001, 'learning_rate_update': 10, 'batch_size': 256, 'writing_rate': 1, 'D_rgb': 3, 'H_enc': 70, 'H_dec': 512, 'wavelength_begin': 380, 'wavelength_end': 1000, 'spectral_resolution': 2, 'D_skin': 5, 'D_spec': 310, 'visible_range_limit': 200}
+Device: cuda(1)
+Using 1 GPUs
+[ WARN:0@1.030] global D:\a\opencv-python\opencv-python\opencv\modules\imgcodecs\src\loadsave.cpp (239) cv::findDecoder imread_('D:\Github\PhD Code\Erythema-Progression\data\0000190.png'): can't open/read file: check file path/integrity
+File D:\Github\PhD Code\Erythema-Progression\data\0000190.png not found.
+Traceback (most recent call last):
+  File "D:\Github\PhD Code\Erythema-Progression\erythema_sweep.py", line 181, in <module>
+    main()
+  File "D:\Github\PhD Code\Erythema-Progression\erythema_sweep.py", line 107, in main
+    raise FileNotFoundError(paths["ALBEDO_PATH"])
+FileNotFoundError: D:\Github\PhD Code\Erythema-Progression\data\0000190.png
+
+(ldm_pretrain) D:\Github\PhD Code\Erythema-Progression>python erythema_sweep.py
+[init] device = cuda
+Loading model in D:\Github\PhD Code\Erythema-Progression\BioSkin\BioSkinAO
+Loading Training Parameters
+{'color_mode': 'spectral', 'param_mode': 'linear', 'network_structure': 2, 'exposure_aware': True, 'loss_mode': 'visible_range', 'loss_params': 'MSE', 'loss_color': 'sam', 'loss_color_full_cycle': 'l1', 'w_p': 1.0, 'w_e': 1.0, 'w_a': 1.0, 'w_full': 1.0, 'n_epochs': 500, 'learning_rate': 0.0001, 'learning_rate_update': 10, 'batch_size': 256, 'writing_rate': 1, 'D_rgb': 3, 'H_enc': 70, 'H_dec': 512, 'wavelength_begin': 380, 'wavelength_end': 1000, 'spectral_resolution': 2, 'D_skin': 5, 'D_spec': 310, 'visible_range_limit': 200}
+Device: cuda(1)
+Using 1 GPUs
+D:\Github\PhD Code\Erythema-Progression\data\000190.png
+Image size:  (1024, 1024, 3)
+Downsampling image D:\Github\PhD Code\Erythema-Progression\data\000190.png to 800
+[p1] skin_props.shape = (640000, 6)
+[p1] reconstruction error = 0.002397
+[info] building butterfly mask for 800x800...
+[info] butterfly mask built completed ...
+[p1] Original Hemoglobin = 0.5263
+[p1] Original Melanin = 0.4596
+[p1] Original Oxygenation = 0.4723
+[p1] Original Eumelanin = 0.4921
+ amplitude start: 0.010, stop: 0.150, step: 0.020
+
+[sweep] amplitude levels: [0.01, 0.03, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15]
+[sweep] target amplitude: 0.15
+
+ OXY boost at 0.000
+
+ EU boost at 0.100
+
+[hemoA] hemoglobin at 0.53 (constant every frame)
+[hemoA] sweeping hemoglobin over [0.01, 0.03, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15]
+
+  idx    amp  contrast  hemoIn->   after  melDrift  outDrift oxyOutDrift euOutDrift   redness
+  ------------------------------------------------------------------------
+    1   0.01    0.0039    0.5263  0.5366   +0.0222   -0.0119   -0.0253    +0.0180   +0.0721 
+    2   0.03    0.0043    0.5263  0.5492   +0.0254   -0.0117   -0.0253    +0.0181   +0.0681 
+    3   0.05    0.0099    0.5263  0.5606   +0.0289   -0.0116   -0.0252    +0.0182   +0.0644 
+    4   0.07    0.0155    0.5263  0.5703   +0.0325   -0.0114   -0.0252    +0.0183   +0.0609 
+    5   0.09    0.0209    0.5263  0.5779   +0.0361   -0.0113   -0.0251    +0.0184   +0.0575 
+    6   0.11    0.0260    0.5263  0.5834   +0.0397   -0.0111   -0.0251    +0.0185   +0.0542 
+    7   0.13    0.0308    0.5263  0.5870   +0.0433   -0.0109   -0.0251    +0.0186   +0.0510 
+    8   0.15    0.0354    0.5263  0.5890   +0.0465   -0.0108   -0.0250    +0.0187   +0.0480 
+
+[out] CSV -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\190\progression\2026-09-09_13-35-15\erythema_sweep.csv
+[out] montage -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\190\progression\2026-09-09_13-35-15\erythema_progression_montage.jpeg
+[out] control curve -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\190\progression\2026-09-09_13-35-15\erythema_control_curve.png
+[out] control curve -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\190\progression\2026-09-09_13-35-15\erythema_control_allcurve.png
+[out] chromophore composite -> D:\Github\PhD Code\Erythema-Progression\output\different_skin\190\progression\2026-09-09_13-35-15\erythema_chromophore_composite.png
+
+[composite] in-mask mean delta per chromophore (edited - clean):
+    melanin                +0.0000  (should be ~0)
+    hemoglobin             +0.1432  <-- target
+    epidermal_thickness    +0.0000
+    eumelanin_ratio        +0.0955
+    oxygenation            +0.0000
+
+DONE. Outputs in: D:\Github\PhD Code\Erythema-Progression\output\different_skin\190
+
+(ldm_pretrain) D:\Github\PhD Code\Erythema-Progression>

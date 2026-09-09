@@ -38,6 +38,7 @@ import datetime
 from helper import  in_mask_mean, make_chromophore_composite, PARAM_NAMES, PARAM_COLORMAPS
 from oxy_direction_test import run_oxy_direction_test
 from hemoglobin_direction import run_hemoglobin_direction
+from mixes_sweep import run_hemoglobin_oxy_direction
 from mask import butterfly_mask, build_gaussian_mask
 import yaml 
 
@@ -53,29 +54,26 @@ import bioskin.utils.io as io
 # CONFIG
 # =========================================================================
 
-# ── Argument Parser ────────────────────────────────────────────
-parser = argparse.ArgumentParser()
-parser.add_argument("--config", type=str, default="config.yaml")
-parser.add_argument("--resume", type=str, default=None)
-args = parser.parse_args()
-
-
-
-with open(args.config, "r",encoding="utf-8") as f:
-    cfg = yaml.safe_load(f)
-
-P = cfg["paths"]
-C = cfg["chromophore_parameter"]
-A = cfg["amplitude_parameter"]
-MA = cfg["mask_parameter"]
-
-
-COMPOSITE_AMP = None
-
 MAX_WIDTH    = 800
 BATCH_SIZE   = 512000
+COMPOSITE_AMP = None  # None = last level, or float = specific level for composite
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", default="Config.yaml", help="YAML config path")
+    return parser.parse_args()
 
 
+def load_config(config_path):
+    with open(config_path, "r", encoding="utf-8") as config_file:
+        return yaml.safe_load(config_file)
+
+
+def create_output_directory(output_root):
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    output_dir = os.path.join(output_root, "progression", timestamp)
+    os.makedirs(output_dir, exist_ok=True)
+    return output_dir
 
 
 
@@ -84,78 +82,99 @@ BATCH_SIZE   = 512000
 # =============================================================================
 
 def main():
-    prog_dir = os.path.join(P["OUTPUT_DIR"], "progression")
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    prog_dir = os.path.join(prog_dir, timestamp)
-    os.makedirs(prog_dir, exist_ok=True)
-    device  = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    use_cpu = (device.type == 'cpu')
+    args = parse_args()
+    config = load_config(args.config)
+    paths = config["paths"]
+    chromophore = config["chromophore_parameter"]
+    amplitude = config["amplitude_parameter"]
+    mask_config = config["mask_parameter"]
+
+    bioskin_repo = paths.get("BIOSKIN_REPO")
+    if bioskin_repo and bioskin_repo not in sys.path:
+        sys.path.insert(0, bioskin_repo)
+
+    from bioskin.bioskin import BioSkinInference
+    import bioskin.utils.io as bioskin_io
+
+    output_dir = create_output_directory(paths["OUTPUT_DIR"])
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    use_cpu = device.type == "cpu"
     print(f"[init] device = {device}")
 
-    bio_skin = BioSkinInference(P["MODEL_PREFIX"], device=device, batch_size=BATCH_SIZE)
+    bio_skin = BioSkinInference(paths["MODEL_PREFIX"], device=device,batch_size=BATCH_SIZE)
+    image = bioskin_io.load_image(paths["ALBEDO_PATH"], max_width=MAX_WIDTH)
+    if image is None:
+        raise FileNotFoundError(paths["ALBEDO_PATH"])
 
-    # -- Encode ONCE --
-    img = io.load_image(P["ALBEDO_PATH"], max_width=MAX_WIDTH)
-    if img is None:
-        raise FileNotFoundError(P["ALBEDO_PATH"])
-    H, W  = img.shape[:2]
-    shape = img.shape
-    refl  = io.vectorize_image(img, device=device)
-
-    (skin_props, ref_vis, ref_vis_rgb,ref_ir, ref_ir_avg, recon_err) = bio_skin.reconstruct(refl)
+    height, width = image.shape[:2]
+    shape = image.shape
+    reflectance = bioskin_io.vectorize_image(image, device=device)
+    skin_props, _, reference_rgb, _, _, reconstruction_error = bio_skin.reconstruct(reflectance)
     print(f"[p1] skin_props.shape = {tuple(skin_props.shape)}")
-    print(f"[p1] reconstruction error = {recon_err.mean().item():.6f}")
+    print(f"[p1] reconstruction error = {reconstruction_error.mean().item():.6f}")
 
-    io.save_tensor_to_image(os.path.join(prog_dir, "frame_00_amp0.00"),
-                            ref_vis_rgb, shape, channels=3, cpu=use_cpu)
+    bioskin_io.save_tensor_to_image(os.path.join(output_dir, "frame_00_amp0.00"),reference_rgb, shape, channels=3, cpu=use_cpu)
 
-    # -- Mask ONCE --
-    #mask = build_gaussian_mask(H, W, MA["MASK_CX_FRAC"], MA["MASK_CY_FRAC"],MA["MASK_RAD_FRAC"], MA["MASK_FEATHER"])
-    mask = butterfly_mask(H, W)
+    mask = butterfly_mask(height, width)
     mask_flat = torch.from_numpy(mask.reshape(-1)).to(device)
     inside = mask.reshape(-1) > 0.5
     outside = ~inside
-    # io.save_tensor_to_image(os.path.join(prog_dir, "mask_binary"), (mask_flat > 0.5).float(), shape, channels=1, cpu=use_cpu)
+    bioskin_io.save_tensor_to_image(os.path.join(output_dir, "mask_feathered"), mask_flat.float(), shape, channels=1, cpu=use_cpu)
+
+    BLOOD_VOLUME_INDEX = chromophore["BLOOD_VOLUME_INDEX"]
+    melanin_index = chromophore["MELANIN_INDEX"]
+    HAEMO_TYPE_INDEX = chromophore["HAEMO_TYPE_INDEX"]
+    eumelanin_index = chromophore["MELANIN_TYPE_INDEX"]
+    clean_hemoglobin = in_mask_mean(skin_props[:, BLOOD_VOLUME_INDEX], inside)
+    clean_melanin = in_mask_mean(skin_props[:, melanin_index], inside)
+    clean_oxygenation = in_mask_mean(skin_props[:, HAEMO_TYPE_INDEX], inside)
+    clean_eumelanin = in_mask_mean(skin_props[:, eumelanin_index], inside)
+    print(f"[p1] Original Hemoglobin = {clean_hemoglobin:.4f}")
+    print(f"[p1] Original Melanin = {clean_melanin:.4f}")
+    print(f"[p1] Original Oxygenation = {clean_oxygenation:.4f}")
+    print(f"[p1] Original Eumelanin = {clean_eumelanin:.4f}")
+
+    levels = np.round(np.arange(amplitude["AMP_START"],
+                                amplitude["AMP_STOP"] + amplitude["AMP_STEP"] / 2.0,
+                                amplitude["AMP_STEP"]), 3)
     
-    # keep the binary for reference if you like, but also save the feathered one:
-    io.save_tensor_to_image(os.path.join(prog_dir, "mask_feathered"),
-                        mask_flat.float(), shape, channels=1, cpu=use_cpu)
+    target_amplitude = float(levels[-1]) if COMPOSITE_AMP is None else float(COMPOSITE_AMP)
 
-    hemo_clean_in    = in_mask_mean(skin_props[:, C["HEMOGLOBIN_INDEX"]], inside)
-    print(f"[p1] Original Hemoglobin = {hemo_clean_in:.4f}")
-    melanin_clean_in = in_mask_mean(skin_props[:, C["MELANIN_INDEX"]], inside)
-    print(f"[p1] Original Melanin = {melanin_clean_in:.4f}")
-    oxy_clean_in    = in_mask_mean(skin_props[:, C["OXYGENATION_INDEX"]], inside)
-    print(f"[p1] Original Oxygenation = {oxy_clean_in:.4f}")
-
-    
-
-    # -- Severity sweep --
-    levels = np.round(np.arange(A["AMP_START"], A["AMP_STOP"] + A["AMP_STEP"] / 2.0, A["AMP_STEP"]), 3)
+    # target_amplitude = mask_config.get("COMPOSITE_AMP")
+    # target_amplitude = float(levels[-1] if target_amplitude is None else target_amplitude)
+    print(f" amplitude start: {amplitude['AMP_START']:.3f}, stop: {amplitude['AMP_STOP']:.3f}, step: {amplitude['AMP_STEP']:.3f}")
     print(f"\n[sweep] amplitude levels: {list(levels)}")
-
-    target_amp = float(levels[-1]) if COMPOSITE_AMP is None else float(COMPOSITE_AMP)
+    print(f"[sweep] target amplitude: {target_amplitude:.2f}")
     sp_composite, amp_composite = None, None
 
 
     # run_oxy_direction_test(
     #     skin_props=skin_props, mask_flat=mask_flat, inside=inside, outside=outside,
-    #     bio_skin=bio_skin, ref_vis_rgb=ref_vis_rgb, shape=shape, prog_dir=prog_dir,
-    #     io=io, C=C, use_cpu=use_cpu,
+    #     bio_skin=bio_skin, ref_vis_rgb=reference_rgb, shape=shape, prog_dir=output_dir,
+    #     io=io, C=chromophore, use_cpu=use_cpu,
     #     hemo_fixed=0.10,                                  # constant flush
     #     oxy_levels=np.round(np.arange(-0.15, 0.15+1e-9, 0.02), 3),  # ± sweep
     # )
 
-    run_hemoglobin_direction(
-        skin_props=skin_props, mask_flat=mask_flat, inside=inside, outside=outside,
-        bio_skin=bio_skin, ref_vis_rgb=ref_vis_rgb, shape=shape, prog_dir=prog_dir,
-        io=io, C=C, use_cpu=use_cpu,target_amp=target_amp,
+    # run_hemoglobin_direction(
+    #     skin_props=skin_props, mask_flat=mask_flat, mask=mask, inside=inside, outside=outside,
+    #     bio_skin=bio_skin, ref_vis_rgb=reference_rgb, shape=shape, prog_dir=output_dir,
+    #     io=io, C=chromophore, A=amplitude,
+    #     use_cpu=use_cpu,target_amp=target_amplitude,
+    #     hemo_levels= levels, 
+    # )
+    
+    run_hemoglobin_oxy_direction(
+        skin_props=skin_props, mask_flat=mask_flat, mask=mask, inside=inside, outside=outside,
+        bio_skin=bio_skin, ref_vis_rgb=reference_rgb, shape=shape, prog_dir=output_dir,
+        io=io, C=chromophore, A=amplitude,
+        use_cpu=use_cpu,target_amp=target_amplitude,
         hemo_levels= levels, 
     )
 
     
 
-    print("\nDONE. Outputs in:", P["OUTPUT_DIR"])
+    print("\nDONE. Outputs in:", paths["OUTPUT_DIR"])
 
 
 if __name__ == "__main__":
@@ -196,7 +215,7 @@ if __name__ == "__main__":
 #         residual = float(amp) * mask_flat
 #         sp = skin_props.clone()
         
-#         sp[:, C["HEMOGLOBIN_INDEX"]] = torch.clamp(sp[:, C["HEMOGLOBIN_INDEX"]] + residual, 0.0, 1.0)
+#         sp[:, C["BLOOD_VOLUME_INDEX"]] = torch.clamp(sp[:, C["BLOOD_VOLUME_INDEX"]] + residual, 0.0, 1.0)
 
 #         _, flush_rgb, _, _ = bio_skin.skin_props_to_reflectance(sp)
 
@@ -207,10 +226,10 @@ if __name__ == "__main__":
 #         contrast = float(torch.sqrt((diff ** 2).sum(dim=1)).mean().detach())
 
 #         sp_check = bio_skin.reflectance_to_skin_props(flush_rgb.float())
-#         hemo_after_in = in_mask_mean(sp_check[:, C["HEMOGLOBIN_INDEX"]], inside)
+#         hemo_after_in = in_mask_mean(sp_check[:, C["BLOOD_VOLUME_INDEX"]], inside)
 #         mel_after_in  = in_mask_mean(sp_check[:, C["MELANIN_INDEX"]], inside)
-#         hemo_out_before = in_mask_mean(skin_props[:, C["HEMOGLOBIN_INDEX"]], outside)
-#         hemo_out_after  = in_mask_mean(sp_check[:, C["HEMOGLOBIN_INDEX"]], outside)
+#         hemo_out_before = in_mask_mean(skin_props[:, C["BLOOD_VOLUME_INDEX"]], outside)
+#         hemo_out_after  = in_mask_mean(sp_check[:, C["BLOOD_VOLUME_INDEX"]], outside)
 #         mel_drift = mel_after_in - melanin_clean_in
 #         out_drift = hemo_out_after - hemo_out_before
 

@@ -2,7 +2,7 @@ paths:
   BIOSKIN_REPO: null
   MODEL_PREFIX: "D:\\Github\\PhD Code\\Erythema-Progression\\BioSkin\\BioSkinAO"
   ALBEDO_PATH: "D:\\Github\\PhD Code\\Erythema-Progression\\data\\000000.png"
-  OUTPUT_DIR: "D:\\Github\\PhD Code\\Erythema-Progression\\output\\oxygenation_sweep_test"
+  OUTPUT_DIR: "D:\\Github\\PhD Code\\Erythema-Progression\\output\\test-results"
   mask : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\major_valid_whole_mask.png"
   mask_cen : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\center_face_mask.png"
   mask_left : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\major_valid_left_mask.png"
@@ -13,11 +13,11 @@ paths:
   mask_nostril : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\nostril_mask.png"
 
 chromophore_parameter:
-  MELANIN_INDEX: 0
-  HEMOGLOBIN_INDEX: 1
-  EPIDERMIS_THICKNESS_INDEX: 2
-  EUMELANIN_RATIO_INDEX: 3
-  OXYGENATION_INDEX: 4
+  MELANIN_INDEX: 0              # Vm — melanin volume fraction (unchanged)
+  BLOOD_VOLUME_INDEX: 1         # Vb — total blood volume fraction (was BLOOD_VOLUME_INDEX)
+  EPIDERMIS_THICKNESS_INDEX: 2  # t  — epidermal thickness in µm (unchanged)
+  MELANIN_TYPE_INDEX: 3         # φm — eumelanin/pheomelanin ratio (was MELANIN_TYPE_INDEX)
+  HAEMO_TYPE_INDEX: 4           # φh — deoxy/oxy-Hb fraction (was HAEMO_TYPE_INDEX)
 
 mask_parameter:
   MASK_CX_FRAC: 0.50
@@ -30,3 +30,5 @@ amplitude_parameter:
   AMP_START: 0.01
   AMP_STOP: 0.15
   AMP_STEP: 0.02
+  OXY_Boost: -0.15
+  EU_Boost: 0.10

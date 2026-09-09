@@ -145,12 +145,12 @@ def main():
     outside = ~inside
     bioskin_io.save_tensor_to_image(os.path.join(output_dir, "mask_feathered"), mask_flat.float(), shape, channels=1, cpu=use_cpu)
 
-    hemoglobin_index = chromophore["HEMOGLOBIN_INDEX"]
+    BLOOD_VOLUME_INDEX = chromophore["BLOOD_VOLUME_INDEX"]
     melanin_index = chromophore["MELANIN_INDEX"]
-    oxygenation_index = chromophore["OXYGENATION_INDEX"]
-    clean_hemoglobin = in_mask_mean(skin_props[:, hemoglobin_index], inside)
+    HAEMO_TYPE_INDEX = chromophore["HAEMO_TYPE_INDEX"]
+    clean_hemoglobin = in_mask_mean(skin_props[:, BLOOD_VOLUME_INDEX], inside)
     clean_melanin = in_mask_mean(skin_props[:, melanin_index], inside)
-    clean_oxygenation = in_mask_mean(skin_props[:, oxygenation_index], inside)
+    clean_oxygenation = in_mask_mean(skin_props[:, HAEMO_TYPE_INDEX], inside)
     print(f"[p1] Original Hemoglobin = {clean_hemoglobin:.4f}")
     print(f"[p1] Original Melanin = {clean_melanin:.4f}")
     print(f"[p1] Original Oxygenation = {clean_oxygenation:.4f}")
@@ -168,8 +168,8 @@ def main():
     for index, level in enumerate(levels, start=1):
         residual = float(level) * mask_flat
         edited_props = skin_props.clone()
-        edited_props[:, hemoglobin_index] = torch.clamp(edited_props[:, hemoglobin_index] + residual, 0.0, 1.0)
-        edited_props[:, oxygenation_index] = torch.clamp(edited_props[:, oxygenation_index] + residual, 0.0, 1.0)
+        edited_props[:, BLOOD_VOLUME_INDEX] = torch.clamp(edited_props[:, BLOOD_VOLUME_INDEX] + residual, 0.0, 1.0)
+        edited_props[:, HAEMO_TYPE_INDEX] = torch.clamp(edited_props[:, HAEMO_TYPE_INDEX] + residual, 0.0, 1.0)
 
         _, edited_rgb, _, _ = bio_skin.skin_props_to_reflectance(edited_props)
         bioskin_io.save_tensor_to_image( os.path.join(output_dir, f"frame_{index:02d}_amp{level:.2f}"),
@@ -178,11 +178,11 @@ def main():
         difference = (edited_rgb - reference_rgb)[inside]
         contrast = float(torch.linalg.vector_norm(difference, dim=1).mean().detach())
         checked_props = bio_skin.reflectance_to_skin_props(edited_rgb.float())
-        hemoglobin_after = in_mask_mean(checked_props[:, hemoglobin_index], inside)
+        hemoglobin_after = in_mask_mean(checked_props[:, BLOOD_VOLUME_INDEX], inside)
         melanin_after = in_mask_mean(checked_props[:, melanin_index], inside)
-        hemoglobin_out_before = in_mask_mean(skin_props[:, hemoglobin_index], outside)
-        hemoglobin_out_after = in_mask_mean(checked_props[:, hemoglobin_index], outside)
-        oxygenation_after = in_mask_mean(checked_props[:, oxygenation_index], inside)
+        hemoglobin_out_before = in_mask_mean(skin_props[:, BLOOD_VOLUME_INDEX], outside)
+        hemoglobin_out_after = in_mask_mean(checked_props[:, BLOOD_VOLUME_INDEX], outside)
+        oxygenation_after = in_mask_mean(checked_props[:, HAEMO_TYPE_INDEX], inside)
 
         rows.append({
             "index": index,
