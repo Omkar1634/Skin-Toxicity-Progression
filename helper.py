@@ -22,30 +22,6 @@ PARAM_COLORMAPS = {
 }
 
 
-def save_montage(output_dir):
-    frame_files = sorted(
-        filename for filename in os.listdir(output_dir)
-        if filename.startswith("frame_") and filename.endswith(".jpeg")
-    )
-    panels = []
-    panel_width = 240
-
-    for filename in frame_files:
-        image = cv2.imread(os.path.join(output_dir, filename))
-        if image is None:
-            continue
-        height = int(image.shape[0] * panel_width / image.shape[1])
-        image = cv2.resize(image, (panel_width, height), interpolation=cv2.INTER_AREA)
-        amplitude = filename.split("_amp")[-1].replace(".jpeg", "")
-        cv2.putText(image, f"amp {amplitude}", (8, 24), cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6, (255, 255, 255), 2, cv2.LINE_AA)
-        panels.append(image)
-
-    if panels:
-        montage_path = os.path.join(output_dir, "erythema_progression_montage.jpeg")
-        cv2.imwrite(montage_path, cv2.hconcat(panels))
-        print(f"[out] montage -> {montage_path}")
-
 
 def save_control_curve(output_dir, rows, clean_hemoglobin):
     try:
@@ -179,3 +155,87 @@ def make_chromophore_composite(sp_clean, sp_edited, shape, mask2d, out_path, amp
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
     return deltas
+
+
+
+def _chromo_vranges(sp_clean, shape):
+    arr = sp_clean.detach().cpu().numpy()
+    H, W = shape[0], shape[1]
+    return {name: (float(arr[:, j].reshape(H, W).min()),
+                   float(arr[:, j].reshape(H, W).max()))
+            for j, name in enumerate(PARAM_NAMES)}
+
+
+def save_chromophore_column(sp_clean, sp_edited, shape, out_path,
+                            panel_width=240, label=True):
+    """One amp's five chromophore maps stacked VERTICALLY into one image,
+    on the SAME colour scale as the clean baseline so every amp column in the
+    montage is comparable. No delta."""
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize
+
+    vranges = _chromo_vranges(sp_clean, shape)
+    arr = sp_edited.detach().cpu().numpy()
+    H, W = shape[0], shape[1]
+    tiles = []
+    for j, name in enumerate(PARAM_NAMES):
+        m = arr[:, j].reshape(H, W)
+        vmin, vmax = vranges[name]
+        cmap = plt.get_cmap(PARAM_COLORMAPS[name])
+        rgba = cmap(Normalize(vmin, vmax)(m))
+        bgr = (rgba[..., :3] * 255).astype(np.uint8)[..., ::-1]   # RGB->BGR
+        h = int(bgr.shape[0] * panel_width / bgr.shape[1])
+        bgr = cv2.resize(bgr, (panel_width, h), interpolation=cv2.INTER_AREA)
+        if label:
+            cv2.putText(bgr, name, (4, 16), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.4, (255, 255, 255), 1, cv2.LINE_AA)
+        tiles.append(bgr)
+    cv2.imwrite(out_path, cv2.vconcat(tiles))
+
+
+def save_montage(output_dir):
+    """Each amp column = face frame on top + its 5 chromophore maps below."""
+    frame_files = sorted(f for f in os.listdir(output_dir)
+                         if f.startswith("frame_") and f.endswith(".jpeg"))
+    panel_width = 240
+    columns = []
+    for filename in frame_files:
+        face = cv2.imread(os.path.join(output_dir, filename))
+        if face is None:
+            continue
+        h = int(face.shape[0] * panel_width / face.shape[1])
+        face = cv2.resize(face, (panel_width, h), interpolation=cv2.INTER_AREA)
+        amp = filename.split("_amp")[-1].replace(".jpeg", "")
+        try:
+            is_clean = abs(float(amp)) < 1e-9
+        except ValueError:
+            is_clean = False
+        label = "original" if is_clean else f"amp {amp}"
+        cv2.putText(face, label, (8, 24), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6, (255, 255, 255), 2, cv2.LINE_AA)        
+
+        chromo_path = os.path.join(output_dir, f"chromo_amp{amp}.png")
+        column = face
+        if os.path.exists(chromo_path):
+            chromo = cv2.imread(chromo_path)
+            if chromo is not None:
+                if chromo.shape[1] != panel_width:
+                    ch = int(chromo.shape[0] * panel_width / chromo.shape[1])
+                    chromo = cv2.resize(chromo, (panel_width, ch),
+                                        interpolation=cv2.INTER_AREA)
+                column = cv2.vconcat([face, chromo])
+        columns.append(column)
+
+    if not columns:
+        return
+    max_h = max(c.shape[0] for c in columns)
+    padded = []
+    for c in columns:
+        if c.shape[0] < max_h:
+            pad = np.full((max_h - c.shape[0], c.shape[1], 3), 255, np.uint8)
+            c = cv2.vconcat([c, pad])
+        padded.append(c)
+
+    montage_path = os.path.join(output_dir, "erythema_progression_montage.jpeg")
+    cv2.imwrite(montage_path, cv2.hconcat(padded))
+    print(f"[out] montage -> {montage_path}")

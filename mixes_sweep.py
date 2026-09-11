@@ -3,7 +3,7 @@ import csv
 import numpy as np
 import torch
 import cv2
-from helper import save_montage, save_control_curve, print_composite_deltas,make_chromophore_composite, save_control_allcurve
+from helper import save_montage, save_control_curve, print_composite_deltas,make_chromophore_composite, save_control_allcurve,save_chromophore_column
 
 
 def in_mask_mean(col, inside_bool):
@@ -62,6 +62,9 @@ def run_hemoglobin_oxy_direction(skin_props, mask_flat, mask, inside, outside,
         
         io.save_tensor_to_image(os.path.join(prog_dir, f"frame_{i:02d}_amp{amp:.2f}"),
                                         flush_rgb, shape, channels=3, cpu=use_cpu)
+        
+        save_chromophore_column(skin_props, sp, shape,
+                        os.path.join(prog_dir, f"chromo_amp{amp:.2f}.png"))
         
         diff = (flush_rgb - ref_vis_rgb)[inside]
         contrast = float(torch.sqrt((diff ** 2).sum(dim=1)).mean().detach())
