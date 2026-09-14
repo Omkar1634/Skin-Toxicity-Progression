@@ -42,7 +42,7 @@ from mixes_sweep import run_hemoglobin_oxy_direction
 from mask import butterfly_mask, build_gaussian_mask
 from skin_tone import face_ita
 import yaml 
-
+from Binary_search_calibration_system import calibrate_grade, apply_reciep
 BIOSKIN_REPO = None
 
 if BIOSKIN_REPO and BIOSKIN_REPO not in sys.path:
@@ -120,6 +120,27 @@ def main():
     mask_flat = torch.from_numpy(mask.reshape(-1)).to(device)
     inside = mask.reshape(-1) > 0.5
     outside = ~inside
+    
+    # --- pre-pass: calibrate one amplitude per grade ---
+    severity = config["severity_parameter"]
+    clean_redness = (reference_rgb[inside, 2] - 0.5 * (reference_rgb[inside, 0] + reference_rgb[inside, 1])).mean().item()
+    print(f"[calib] clean redness baseline = {clean_redness:.4f}")
+    calibrated = {}
+    for grade_name, target in severity.items():
+        absolute_target = clean_redness + target
+        amp, redness = calibrate_grade(
+            skin_props, mask_flat, bio_skin,
+            amplitude, chromophore,
+            redness_target=absolute_target,
+            inside=inside,
+            tolerance=0.005,
+            max_iterations=6
+        )
+        calibrated[grade_name] = {"amp": float(amp), "redness": float(redness)}
+        print(f"[calib] {grade_name}: amp={amp:.4f}  redness={redness:.4f}")
+    
+    
+    
     bioskin_io.save_tensor_to_image(os.path.join(output_dir, "mask_feathered"), mask_flat.float(), shape, channels=1, cpu=use_cpu)
     
     save_chromophore_column(skin_props, skin_props, shape, os.path.join(output_dir, "chromo_amp0.00.png"))
@@ -154,8 +175,32 @@ def main():
     print(f"[sweep] target amplitude: {target_amplitude:.2f}")
     sp_composite, amp_composite = None, None
 
+    # --- sweep using calibrated amplitudes ---
+    calibrated_levels = [calibrated[g]["amp"] for g in calibrated]
 
-    # run_oxy_direction_test(
+    run_hemoglobin_oxy_direction(
+        skin_props=skin_props, mask_flat=mask_flat, mask=mask,
+        inside=inside, outside=outside,
+        bio_skin=bio_skin, ref_vis_rgb=reference_rgb,
+        shape=shape, prog_dir=output_dir,
+        io=bioskin_io, C=chromophore, A=amplitude,
+        use_cpu=use_cpu, target_amp=calibrated_levels[-1],
+        hemo_levels=calibrated_levels,
+    )
+    
+
+
+    print("\nDONE. Outputs in:", paths["OUTPUT_DIR"])
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+  # run_oxy_direction_test(
     #     skin_props=skin_props, mask_flat=mask_flat, inside=inside, outside=outside,
     #     bio_skin=bio_skin, ref_vis_rgb=reference_rgb, shape=shape, prog_dir=output_dir,
     #     io=io, C=chromophore, use_cpu=use_cpu,
@@ -170,28 +215,6 @@ def main():
     #     use_cpu=use_cpu,target_amp=target_amplitude,
     #     hemo_levels= levels, 
     # )
-    
-    run_hemoglobin_oxy_direction(
-        skin_props=skin_props, mask_flat=mask_flat, mask=mask, inside=inside, outside=outside,
-        bio_skin=bio_skin, ref_vis_rgb=reference_rgb, shape=shape, prog_dir=output_dir,
-        io=io, C=chromophore, A=amplitude,
-        use_cpu=use_cpu,target_amp=target_amplitude,
-        hemo_levels= levels, 
-    )
-
-    
-
-    print("\nDONE. Outputs in:", paths["OUTPUT_DIR"])
-
-
-if __name__ == "__main__":
-    main()
-
-
-
-
-
-
 
 
 
