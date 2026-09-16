@@ -121,23 +121,23 @@ def main():
     inside = mask.reshape(-1) > 0.5
     outside = ~inside
     
-    # --- pre-pass: calibrate one amplitude per grade ---
-    severity = config["severity_parameter"]
-    clean_redness = (reference_rgb[inside, 2] - 0.5 * (reference_rgb[inside, 0] + reference_rgb[inside, 1])).mean().item()
-    print(f"[calib] clean redness baseline = {clean_redness:.4f}")
-    calibrated = {}
-    for grade_name, target in severity.items():
-        absolute_target = clean_redness + target
-        amp, redness = calibrate_grade(
-            skin_props, mask_flat, bio_skin,
-            amplitude, chromophore,
-            redness_target=absolute_target,
-            inside=inside,
-            tolerance=0.005,
-            max_iterations=6
-        )
-        calibrated[grade_name] = {"amp": float(amp), "redness": float(redness)}
-        print(f"[calib] {grade_name}: amp={amp:.4f}  redness={redness:.4f}")
+    # # --- pre-pass: calibrate one amplitude per grade ---
+    # severity = config["severity_parameter"]
+    # clean_redness = (reference_rgb[inside, 2] - 0.5 * (reference_rgb[inside, 0] + reference_rgb[inside, 1])).mean().item()
+    # print(f"[calib] clean redness baseline = {clean_redness:.4f}")
+    # calibrated = {}
+    # for grade_name, target in severity.items():
+    #     absolute_target = clean_redness + target
+    #     amp, redness = calibrate_grade(
+    #         skin_props, mask_flat, bio_skin,
+    #         amplitude, chromophore,
+    #         redness_target=absolute_target,
+    #         inside=inside,
+    #         tolerance=0.005,
+    #         max_iterations=6
+    #     )
+    #     calibrated[grade_name] = {"amp": float(amp), "redness": float(redness)}
+    #     print(f"[calib] {grade_name}: amp={amp:.4f}  redness={redness:.4f}")
     
     
     
@@ -176,7 +176,7 @@ def main():
     sp_composite, amp_composite = None, None
 
     # --- sweep using calibrated amplitudes ---
-    calibrated_levels = [calibrated[g]["amp"] for g in calibrated]
+    # calibrated_levels = [calibrated[g]["amp"] for g in calibrated]
 
     run_hemoglobin_oxy_direction(
         skin_props=skin_props, mask_flat=mask_flat, mask=mask,
@@ -185,7 +185,7 @@ def main():
         shape=shape, prog_dir=output_dir,
         io=bioskin_io, C=chromophore, A=amplitude,
         use_cpu=use_cpu, target_amp=calibrated_levels[-1],
-        hemo_levels=calibrated_levels,
+        hemo_levels=levels,
     )
     
 
