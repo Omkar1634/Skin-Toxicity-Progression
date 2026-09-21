@@ -3,7 +3,7 @@ import csv
 import numpy as np
 import torch
 import cv2
-from helper import save_montage, save_control_curve, print_composite_deltas,make_chromophore_composite, save_control_allcurve,save_chromophore_column
+from helper import save_montage, save_control_curve, print_composite_deltas,make_chromophore_composite, save_control_allcurve,save_chromophore_column, compute_a_star
 
 
 def in_mask_mean(col, inside_bool):
@@ -17,9 +17,9 @@ def _in_mask_redness(flush_rgb, inside_bool):
     return float((r - 0.5 * (b + g))[inside_bool].mean())
 
 def run_hemoglobin_oxy_direction(skin_props, mask_flat, mask, inside, outside,
-                               bio_skin, ref_vis_rgb, shape, prog_dir,
-                               io, C, A,use_cpu=False, target_amp=None,
-                               hemo_levels=None):
+                                 bio_skin, ref_vis_rgb, shape, prog_dir,
+                                 io, C, A, use_cpu=False, target_amp=None,
+                                 hemo_levels=None, clean_a_star=0.0):
     """
 
     hemo_levels : symmetric list of hemoglobin amplitudes, e.g.
@@ -58,7 +58,6 @@ def run_hemoglobin_oxy_direction(skin_props, mask_flat, mask, inside, outside,
         sp[:, EU] = torch.clamp(sp[:, EU] + float(Amplitude["EU_Boost"]) * mask_flat, 0.0, 1.0)
         
         _, flush_rgb, _, _ = bio_skin.skin_props_to_reflectance(sp)
-
         
         io.save_tensor_to_image(os.path.join(prog_dir, f"frame_{i:02d}_amp{amp:.2f}"),
                                         flush_rgb, shape, channels=3, cpu=use_cpu)
@@ -84,7 +83,8 @@ def run_hemoglobin_oxy_direction(skin_props, mask_flat, mask, inside, outside,
         mel_drift = mel_after_in - mel_clean_in
         out_drift = hemo_out_after - hemo_out_before
         oxy_out_drift = oxy_out_after - oxy_out_before
-        redness    = _in_mask_redness(flush_rgb, inside)
+        flush_a_star = compute_a_star(flush_rgb, inside)
+        redness      = flush_a_star - clean_a_star
 
         
         print(f"  {i:>3} {amp:>6.2f} {contrast:>9.4f} " f"{hemo_clean_in:>9.4f} {hemo_after_in:>7.4f} " 

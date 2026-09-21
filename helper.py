@@ -8,7 +8,14 @@ import numpy as np
 import torch
 import cv2
 import argparse
+BIOSKIN_REPO = None
 
+if BIOSKIN_REPO and BIOSKIN_REPO not in sys.path:
+    sys.path.insert(0, BIOSKIN_REPO)
+
+from bioskin.bioskin import BioSkinInference
+import bioskin.utils.io as io
+import bioskin.spectrum.color_spectrum as color
 
 PARAM_NAMES = ['melanin', 'hemoglobin', 'epidermal_thickness',
                'eumelanin_ratio', 'oxygenation']
@@ -21,7 +28,34 @@ PARAM_COLORMAPS = {
     'oxygenation':         'RdYlGn_r',
 }
 
+def compute_a_star(flush_rgb, inside):
+    """
+    Compute mean a* over in-mask pixels from BioSkin flush_rgb.
+    flush_rgb: (N, 3) tensor, BGR order (ch0=B, ch1=G, ch2=R), linear float.
+    inside: (N,) bool array — True for in-mask pixels.
+    Returns: float — mean a* over mask.
+    
+    """
+    
+    x = flush_rgb.detach().cpu().numpy()
+    # BioSkin BGR → stack as RGB for cv2.COLOR_RGB2LAB
+    b, g, r = x[:, 0], x[:, 1], x[:, 2]
+    rgb = np.stack([r, g, b], axis=1)             # (N, 3) RGB
 
+    # apply BioSkin's linear→sRGB before LAB conversion (matches save_jpeg)
+    rgb = color.linear_to_sRGB(rgb)               # color = bioskin.spectrum.color_spectrum
+    rgb = np.clip(rgb, 0.0, 1.0)
+
+    # scale to uint8 for cv2
+    rgb_uint8 = (rgb * 255.0).astype(np.uint8)    # (N, 3)
+
+    # cvtColor needs (H, W, 3) — reshape to (N, 1, 3) then back
+    lab = cv2.cvtColor(rgb_uint8.reshape(-1, 1, 3), cv2.COLOR_RGB2LAB).reshape(-1, 3)
+
+    # channel 1 is a* in OpenCV LAB, stored unsigned (0=−128, 128=0, 255=+127)
+    a_star = lab[:, 1].astype(np.float32) - 128.0
+
+    return float(a_star[inside].mean())
 
 def save_control_curve(output_dir, rows, clean_hemoglobin):
     try:

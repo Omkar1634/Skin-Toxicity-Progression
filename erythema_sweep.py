@@ -35,7 +35,7 @@ import torch
 import cv2
 import argparse
 import datetime 
-from helper import  in_mask_mean, make_chromophore_composite, PARAM_NAMES, PARAM_COLORMAPS, save_chromophore_column
+from helper import  compute_a_star, in_mask_mean, make_chromophore_composite, PARAM_NAMES, PARAM_COLORMAPS, save_chromophore_column
 from oxy_direction_test import run_oxy_direction_test
 from hemoglobin_direction import run_hemoglobin_direction
 from mixes_sweep import run_hemoglobin_oxy_direction
@@ -121,23 +121,55 @@ def main():
     inside = mask.reshape(-1) > 0.5
     outside = ~inside
     
-    # # --- pre-pass: calibrate one amplitude per grade ---
-    # severity = config["severity_parameter"]
-    # clean_redness = (reference_rgb[inside, 2] - 0.5 * (reference_rgb[inside, 0] + reference_rgb[inside, 1])).mean().item()
-    # print(f"[calib] clean redness baseline = {clean_redness:.4f}")
-    # calibrated = {}
-    # for grade_name, target in severity.items():
-    #     absolute_target = clean_redness + target
-    #     amp, redness = calibrate_grade(
-    #         skin_props, mask_flat, bio_skin,
-    #         amplitude, chromophore,
-    #         redness_target=absolute_target,
-    #         inside=inside,
-    #         tolerance=0.005,
-    #         max_iterations=6
-    #     )
-    #     calibrated[grade_name] = {"amp": float(amp), "redness": float(redness)}
-    #     print(f"[calib] {grade_name}: amp={amp:.4f}  redness={redness:.4f}")
+    
+    # print(f"Computing the a* value for the flush_rgb image using OpenCV's LAB conversion.")
+    clean_a_star = compute_a_star(reference_rgb, inside)
+    print(f"[p1] clean a* = {clean_a_star:.4f}")
+    
+    # ── PUT THE FLOOR BLOCK HERE ────────────────────────────────────
+    sp_floor = skin_props.clone()
+    sp_floor[:, chromophore["MELANIN_TYPE_INDEX"]] = torch.clamp(
+        sp_floor[:, chromophore["MELANIN_TYPE_INDEX"]] + float(amplitude["EU_Boost"]) * mask_flat, 0, 1)
+    sp_floor[:, chromophore["HAEMO_TYPE_INDEX"]] = torch.clamp(
+        sp_floor[:, chromophore["HAEMO_TYPE_INDEX"]] + float(amplitude["OXY_Boost"]) * mask_flat, 0, 1)
+    _, floor_rgb, _, _ = bio_skin.skin_props_to_reflectance(sp_floor)
+    floor_a_star = compute_a_star(floor_rgb, inside)
+    print(f"[p1] recipe floor a* = {floor_a_star:.4f}  floor Δa* = {floor_a_star - clean_a_star:.4f}")
+    
+    
+    probe_amps   = [0.02, 0.05, 0.08, 0.12, 0.18, 0.25, 0.35]
+    probe_deltas = []
+    for a in probe_amps:
+        flush = apply_reciep(skin_props, mask_flat, bio_skin, amplitude, chromophore, a)
+        probe_deltas.append(compute_a_star(flush, inside) - floor_a_star)
+    peak_idx  = int(np.argmax(probe_deltas))
+    face_high = probe_amps[peak_idx]
+    max_delta = probe_deltas[peak_idx]
+    print(f"[p1] face ceiling: amp={face_high:.3f}  max Δa*={max_delta:.3f}")
+
+    
+    # ── calibration pre-pass ──────────────────────────────────────
+    severity   = config["severity_parameter"]
+    calibrated = {}
+    grade_names = list(severity.keys())
+
+    for i, (grade_name, target) in enumerate(severity.items()):
+        # space grades evenly across the face's available range
+        fraction      = (i + 1) / len(severity)
+        capped_target = min(target, max_delta * fraction)
+        
+        amp, redness = calibrate_grade(
+            skin_props, mask_flat, bio_skin,
+            amplitude, chromophore,
+            redness_target=capped_target,
+            inside=inside,
+            clean_a_star=floor_a_star,
+            high=face_high,
+            tolerance=0.005,
+            max_iterations=6
+        )
+        calibrated[grade_name] = {"amp": float(amp), "redness": float(redness)}
+        print(f"[calib] {grade_name}: amp={amp:.4f}  redness={redness:.4f}")
     
     
     
@@ -176,7 +208,7 @@ def main():
     sp_composite, amp_composite = None, None
 
     # --- sweep using calibrated amplitudes ---
-    # calibrated_levels = [calibrated[g]["amp"] for g in calibrated]
+    calibrated_levels = [calibrated[g]["amp"] for g in calibrated]
 
     run_hemoglobin_oxy_direction(
         skin_props=skin_props, mask_flat=mask_flat, mask=mask,
@@ -185,7 +217,7 @@ def main():
         shape=shape, prog_dir=output_dir,
         io=bioskin_io, C=chromophore, A=amplitude,
         use_cpu=use_cpu, target_amp=calibrated_levels[-1],
-        hemo_levels=levels,
+        hemo_levels=calibrated_levels, clean_a_star=clean_a_star,
     )
     
 
