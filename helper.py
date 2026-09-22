@@ -8,7 +8,14 @@ import numpy as np
 import torch
 import cv2
 import argparse
+BIOSKIN_REPO = None
 
+if BIOSKIN_REPO and BIOSKIN_REPO not in sys.path:
+    sys.path.insert(0, BIOSKIN_REPO)
+
+from bioskin.bioskin import BioSkinInference
+import bioskin.utils.io as io
+import bioskin.spectrum.color_spectrum as color
 
 PARAM_NAMES = ['melanin', 'hemoglobin', 'epidermal_thickness',
                'eumelanin_ratio', 'oxygenation']
@@ -21,7 +28,34 @@ PARAM_COLORMAPS = {
     'oxygenation':         'RdYlGn_r',
 }
 
+def compute_a_star(flush_rgb, inside):
+    """
+    Compute mean a* over in-mask pixels from BioSkin flush_rgb.
+    flush_rgb: (N, 3) tensor, BGR order (ch0=B, ch1=G, ch2=R), linear float.
+    inside: (N,) bool array — True for in-mask pixels.
+    Returns: float — mean a* over mask.
+    
+    """
+    
+    x = flush_rgb.detach().cpu().numpy()
+    # BioSkin BGR → stack as RGB for cv2.COLOR_RGB2LAB
+    b, g, r = x[:, 0], x[:, 1], x[:, 2]
+    rgb = np.stack([r, g, b], axis=1)             # (N, 3) RGB
 
+    # apply BioSkin's linear→sRGB before LAB conversion (matches save_jpeg)
+    rgb = color.linear_to_sRGB(rgb)               # color = bioskin.spectrum.color_spectrum
+    rgb = np.clip(rgb, 0.0, 1.0)
+
+    # scale to uint8 for cv2
+    rgb_uint8 = (rgb * 255.0).astype(np.uint8)    # (N, 3)
+
+    # cvtColor needs (H, W, 3) — reshape to (N, 1, 3) then back
+    lab = cv2.cvtColor(rgb_uint8.reshape(-1, 1, 3), cv2.COLOR_RGB2LAB).reshape(-1, 3)
+
+    # channel 1 is a* in OpenCV LAB, stored unsigned (0=−128, 128=0, 255=+127)
+    a_star = lab[:, 1].astype(np.float32) - 128.0
+
+    return float(a_star[inside].mean())
 
 def save_control_curve(output_dir, rows, clean_hemoglobin):
     try:
@@ -239,3 +273,120 @@ def save_montage(output_dir):
     montage_path = os.path.join(output_dir, "erythema_progression_montage.jpeg")
     cv2.imwrite(montage_path, cv2.hconcat(padded))
     print(f"[out] montage -> {montage_path}")
+    
+    
+    
+# ── ITA → Fitzpatrick lookup ───────────────────────────────────────────────
+def ita_to_fitzpatrick(ita):
+    """Approximate Fitzpatrick type from ITA angle (Chardon et al.)"""
+    if ita > 55:   return "I"
+    if ita > 41:   return "II"
+    if ita > 28:   return "III"
+    if ita > 10:   return "IV"
+    if ita > -30:  return "V"
+    return "VI"
+
+CEA_LABELS = {
+    0: "none",
+    1: "mild",
+    2: "moderate",
+    3: "severe",
+    4: "very_severe"
+}
+
+def save_metadata_csv(
+    output_dir,
+    face_id,
+    ita_result,           # dict from face_ita() — keys: ita, band
+    clean_chromophores,   # dict: melanin, hemoglobin, oxygenation, eumelanin
+    clean_a_star,
+    floor_a_star,
+    face_ceiling_delta,
+    calibrated_grades,    # list of 4 dicts: [{amp, delta_a_star}, ...]
+    mask_type="butterfly",
+    pipeline_version="v1.0"
+):
+    """
+    Writes one metadata CSV for this face covering all 5 rows
+    (CEA 0 = clean + CEA 1-4 = calibrated grades).
+    Output: <output_dir>/metadata_<face_id>.csv
+    """
+    import csv, os
+
+    fieldnames = [
+    "face_id", "cea_grade", "severity_label",
+    "erythema_type", "erythema_pattern", "clinical_analogue",
+    "ita", "ita_band", "fitzpatrick_est",
+    "melanin_vm", "hemoglobin_vb", "oxygenation", "eumelanin_ratio",
+    "residual_amp", "delta_a_star",
+    "contrast", "hemo_after", "mel_drift", "out_drift", "oxy_out_drift", "eu_out_drift",
+    "mask_type", "pipeline_version"
+    ]
+
+    rows = []
+
+    # ── CEA 0: clean face ──────────────────────────────────────────────────
+    rows.append({
+        "face_id":             face_id,
+        "cea_grade":           0,
+        "severity_label":      CEA_LABELS[0],
+        "erythema_type":       "vascular_erythema",
+        "erythema_pattern":    "butterfly",
+        "clinical_analogue":   "rosacea_inflammatory_flush",
+        "ita":                 round(ita_result["ita"], 4),
+        "ita_band":            ita_result["band"],
+        "fitzpatrick_est":     ita_to_fitzpatrick(ita_result["ita"]),
+        "melanin_vm":          round(clean_chromophores["melanin"],     4),
+        "hemoglobin_vb":       round(clean_chromophores["hemoglobin"],  4),
+        "oxygenation":         round(clean_chromophores["oxygenation"], 4),
+        "eumelanin_ratio":     round(clean_chromophores["eumelanin"],   4),
+        "residual_amp": 0.0, 
+        "delta_a_star": 0.0,
+        "contrast": 0.0,
+        "hemo_after": round(clean_chromophores["hemoglobin"], 4),
+        "mel_drift": 0.0, 
+        "out_drift": 0.0,
+        "oxy_out_drift": 0.0,
+        "eu_out_drift": 0.0,
+        "mask_type":           mask_type,
+        "pipeline_version":    pipeline_version,
+    })
+
+    # ── CEA 1-4: calibrated grades ─────────────────────────────────────────
+    for i, grade in enumerate(calibrated_grades):
+        cea = i + 1
+        rows.append({
+            "face_id":             face_id,
+            "cea_grade":           cea,
+            "severity_label":      CEA_LABELS[cea],
+            "erythema_type":       "vascular_erythema",
+            "erythema_pattern":    "butterfly",
+            "clinical_analogue":   "rosacea_inflammatory_flush",
+            "ita":                 round(ita_result["ita"], 4),
+            "ita_band":            ita_result["band"],
+            "fitzpatrick_est":     ita_to_fitzpatrick(ita_result["ita"]),
+            "melanin_vm":          round(clean_chromophores["melanin"],     4),
+            "hemoglobin_vb":       round(clean_chromophores["hemoglobin"],  4),
+            "oxygenation":         round(clean_chromophores["oxygenation"], 4),
+            "eumelanin_ratio":     round(clean_chromophores["eumelanin"],   4),
+            "residual_amp":  round(grade["amp"], 6),
+            "delta_a_star":  round(grade["delta_a_star"], 4),
+            # CEA 1-4 rows — replace the drift/contrast lines with:
+            "contrast":      round(grade.get("contrast",      0.0), 4),
+            "hemo_after":    round(grade.get("hemo_after",    0.0), 4),
+            "mel_drift":     round(grade.get("mel_drift",     0.0), 4),
+            "out_drift":     round(grade.get("out_drift",     0.0), 4),
+            "oxy_out_drift": round(grade.get("oxy_out_drift", 0.0), 4),
+            "eu_out_drift":  round(grade.get("eu_out_drift",  0.0), 4),
+            "mask_type":           mask_type,
+            "pipeline_version":    pipeline_version,
+        })
+
+    out_path = os.path.join(output_dir, f"metadata_{face_id}.csv")
+    with open(out_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    print(f"[out] metadata -> {out_path}")
+    return out_path
