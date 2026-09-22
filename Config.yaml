@@ -1,8 +1,8 @@
 paths: 
   BIOSKIN_REPO: null
   MODEL_PREFIX: "D:\\Github\\PhD Code\\Erythema-Progression\\BioSkin\\BioSkinAO"
-  ALBEDO_PATH: "D:\\Github\\PhD Code\\Erythema-Progression\\data\\000190.png"
-  OUTPUT_DIR: "D:\\Github\\PhD Code\\Erythema-Progression\\output\\test-results\\21-sep\\acceptance-test\\"
+  ALBEDO_PATH: "D:\\Github\\PhD Code\\Erythema-Progression\\data\\000000.png"
+  OUTPUT_DIR: "D:\\Github\\PhD Code\\Erythema-Progression\\output\\test-results\\22-sep\\metadata\\"
   mask : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\major_valid_whole_mask.png"
   mask_cen : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\center_face_mask.png"
   mask_left : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\major_valid_left_mask.png"

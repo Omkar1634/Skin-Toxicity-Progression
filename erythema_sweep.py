@@ -35,7 +35,7 @@ import torch
 import cv2
 import argparse
 import datetime 
-from helper import  compute_a_star, in_mask_mean, make_chromophore_composite, PARAM_NAMES, PARAM_COLORMAPS, save_chromophore_column
+from helper import  compute_a_star, in_mask_mean, make_chromophore_composite, PARAM_NAMES, PARAM_COLORMAPS, save_chromophore_column, save_montage, save_control_curve, save_control_allcurve, save_metadata_csv,ita_to_fitzpatrick
 from oxy_direction_test import run_oxy_direction_test
 from hemoglobin_direction import run_hemoglobin_direction
 from mixes_sweep import run_hemoglobin_oxy_direction
@@ -148,16 +148,14 @@ def main():
     print(f"[p1] face ceiling: amp={face_high:.3f}  max Δa*={max_delta:.3f}")
 
     
-    # ── calibration pre-pass ──────────────────────────────────────
+        # ── calibration pre-pass ──────────────────────────────────────
     severity   = config["severity_parameter"]
     calibrated = {}
     grade_names = list(severity.keys())
 
     for i, (grade_name, target) in enumerate(severity.items()):
-        # space grades evenly across the face's available range
         fraction      = (i + 1) / len(severity)
         capped_target = min(target, max_delta * fraction)
-        
         amp, redness = calibrate_grade(
             skin_props, mask_flat, bio_skin,
             amplitude, chromophore,
@@ -170,47 +168,69 @@ def main():
         )
         calibrated[grade_name] = {"amp": float(amp), "redness": float(redness)}
         print(f"[calib] {grade_name}: amp={amp:.4f}  redness={redness:.4f}")
-    
-    
-    
+
+    calibrated_levels = [calibrated[g]["amp"] for g in calibrated]
+    calibrated_grades = [
+        {
+            "amp":          calibrated[g]["amp"],
+            "delta_a_star": calibrated[g]["redness"]
+        }
+        for g in calibrated
+    ]
+
+    # ── save mask / chromo BEFORE metadata (no dependencies) ──────
     bioskin_io.save_tensor_to_image(os.path.join(output_dir, "mask_feathered"), mask_flat.float(), shape, channels=1, cpu=use_cpu)
-    
     save_chromophore_column(skin_props, skin_props, shape, os.path.join(output_dir, "chromo_amp0.00.png"))
-    # computing the Fitzpatrick skin tone of the input image
+
+    # ── ITA + clean chromophores (must precede metadata) ──────────
     ita_result = face_ita(paths["ALBEDO_PATH"], mask)
     print(f"[p1] Fitzpatrick skin tone: {ita_result['ita']:.2f} ({ita_result['band']})")
-    
 
     BLOOD_VOLUME_INDEX = chromophore["BLOOD_VOLUME_INDEX"]
-    melanin_index = chromophore["MELANIN_INDEX"]
-    HAEMO_TYPE_INDEX = chromophore["HAEMO_TYPE_INDEX"]
-    eumelanin_index = chromophore["MELANIN_TYPE_INDEX"]
-    clean_hemoglobin = in_mask_mean(skin_props[:, BLOOD_VOLUME_INDEX], inside)
-    clean_melanin = in_mask_mean(skin_props[:, melanin_index], inside)
-    clean_oxygenation = in_mask_mean(skin_props[:, HAEMO_TYPE_INDEX], inside)
-    clean_eumelanin = in_mask_mean(skin_props[:, eumelanin_index], inside)
+    melanin_index      = chromophore["MELANIN_INDEX"]
+    HAEMO_TYPE_INDEX   = chromophore["HAEMO_TYPE_INDEX"]
+    eumelanin_index    = chromophore["MELANIN_TYPE_INDEX"]
+    clean_hemoglobin   = in_mask_mean(skin_props[:, BLOOD_VOLUME_INDEX], inside)
+    clean_melanin      = in_mask_mean(skin_props[:, melanin_index],      inside)
+    clean_oxygenation  = in_mask_mean(skin_props[:, HAEMO_TYPE_INDEX],   inside)
+    clean_eumelanin    = in_mask_mean(skin_props[:, eumelanin_index],    inside)
     print(f"[p1] Original Hemoglobin = {clean_hemoglobin:.4f}")
-    print(f"[p1] Original Melanin = {clean_melanin:.4f}")
+    print(f"[p1] Original Melanin    = {clean_melanin:.4f}")
     print(f"[p1] Original Oxygenation = {clean_oxygenation:.4f}")
-    print(f"[p1] Original Eumelanin = {clean_eumelanin:.4f}")
+    print(f"[p1] Original Eumelanin  = {clean_eumelanin:.4f}")
 
+    # ── metadata CSV (all variables now defined) ──────────────────
+    clean_chromophores = {
+        "melanin":    clean_melanin,
+        "hemoglobin": clean_hemoglobin,
+        "oxygenation":clean_oxygenation,
+        "eumelanin":  clean_eumelanin,
+    }
+    face_id = os.path.splitext(os.path.basename(paths["ALBEDO_PATH"]))[0]
+    save_metadata_csv(
+        output_dir         = output_dir,
+        face_id            = face_id,
+        ita_result         = ita_result,
+        clean_chromophores = clean_chromophores,
+        clean_a_star       = clean_a_star,
+        floor_a_star       = floor_a_star,
+        face_ceiling_delta = max_delta,
+        calibrated_grades  = calibrated_grades,
+        mask_type          = "butterfly",
+        pipeline_version   = "v1.0"
+    )
+
+    # ── amplitude sweep ───────────────────────────────────────────
     levels = np.round(np.arange(amplitude["AMP_START"],
                                 amplitude["AMP_STOP"] + amplitude["AMP_STEP"] / 2.0,
                                 amplitude["AMP_STEP"]), 3)
-    
     target_amplitude = float(levels[-1]) if COMPOSITE_AMP is None else float(COMPOSITE_AMP)
-
-    # target_amplitude = mask_config.get("COMPOSITE_AMP")
-    # target_amplitude = float(levels[-1] if target_amplitude is None else target_amplitude)
     print(f" amplitude start: {amplitude['AMP_START']:.3f}, stop: {amplitude['AMP_STOP']:.3f}, step: {amplitude['AMP_STEP']:.3f}")
     print(f"\n[sweep] amplitude levels: {list(levels)}")
     print(f"[sweep] target amplitude: {target_amplitude:.2f}")
     sp_composite, amp_composite = None, None
 
-    # --- sweep using calibrated amplitudes ---
-    calibrated_levels = [calibrated[g]["amp"] for g in calibrated]
-
-    run_hemoglobin_oxy_direction(
+    rows = run_hemoglobin_oxy_direction(
         skin_props=skin_props, mask_flat=mask_flat, mask=mask,
         inside=inside, outside=outside,
         bio_skin=bio_skin, ref_vis_rgb=reference_rgb,
@@ -218,6 +238,32 @@ def main():
         io=bioskin_io, C=chromophore, A=amplitude,
         use_cpu=use_cpu, target_amp=calibrated_levels[-1],
         hemo_levels=calibrated_levels, clean_a_star=clean_a_star,
+    )
+
+    # build lookup by amp from the returned rows (no CSV needed)
+    sweep_rows = {round(float(r["residual_amp"]), 6): r for r in rows}
+
+    for grade in calibrated_grades:
+        sr = sweep_rows.get(round(grade["amp"], 6), {})
+        grade["contrast"]      = float(sr.get("in_mask_contrast",  0))
+        grade["hemo_after"]    = float(sr.get("hemo_in_after",     0))
+        grade["mel_drift"]     = float(sr.get("melanin_drift_in",  0))
+        grade["out_drift"]     = float(sr.get("hemo_drift_out",    0))
+        grade["oxy_out_drift"] = float(sr.get("oxy_drift_out",     0))
+        grade["eu_out_drift"]  = float(sr.get("eu_drift_out",      0))
+
+    # ── metadata CSV (all values now populated) ───────────────────
+    save_metadata_csv(
+        output_dir         = output_dir,
+        face_id            = face_id,
+        ita_result         = ita_result,
+        clean_chromophores = clean_chromophores,
+        clean_a_star       = clean_a_star,
+        floor_a_star       = floor_a_star,
+        face_ceiling_delta = max_delta,   # kept internally, just not in CSV
+        calibrated_grades  = calibrated_grades,
+        mask_type          = "butterfly",
+        pipeline_version   = "v1.0"
     )
     
 
