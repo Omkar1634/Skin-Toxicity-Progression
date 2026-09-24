@@ -15,8 +15,8 @@ import numpy as np
 import torch
 import yaml
 
-from helper import PARAM_NAMES, in_mask_mean, make_chromophore_composite
-from mask import butterfly_mask
+from utils.helper import PARAM_NAMES, in_mask_mean, make_chromophore_composite
+from utils.mask import butterfly_mask
 
 
 MAX_WIDTH = 800

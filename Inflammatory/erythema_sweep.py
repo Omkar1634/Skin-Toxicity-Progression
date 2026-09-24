@@ -25,24 +25,29 @@ skin_props cols: 0 melanin | 1 hemoglobin | 2 epi_thickness | 3 eumelanin_ratio
 # =============================================================================
 
 import os
+import sys
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"          # 3090 only; hides 5070 Ti; kills DataParallel
 os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "true"
 
-import sys
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 import csv
 import numpy as np
 import torch
 import cv2
 import argparse
 import datetime 
-from helper import  compute_a_star, in_mask_mean, make_chromophore_composite, PARAM_NAMES, PARAM_COLORMAPS, save_chromophore_column, save_montage, save_control_curve, save_control_allcurve, save_metadata_csv,ita_to_fitzpatrick, save_chromophore_maps
-from oxy_direction_test import run_oxy_direction_test
-from hemoglobin_direction import run_hemoglobin_direction
-from mixes_sweep import run_hemoglobin_oxy_direction
-from mask import butterfly_mask, build_gaussian_mask
-from skin_tone import face_ita
+from utils.helper import  compute_a_star, in_mask_mean, make_chromophore_composite, PARAM_NAMES, PARAM_COLORMAPS, save_chromophore_column, save_montage, save_control_curve, save_control_allcurve, save_metadata_csv,ita_to_fitzpatrick, save_chromophore_maps
+from Inflammatory.oxy_direction_test import run_oxy_direction_test
+from Inflammatory.hemoglobin_direction import run_hemoglobin_direction
+from Inflammatory.mixes_sweep import run_hemoglobin_oxy_direction
+from utils.mask import butterfly_mask, build_gaussian_mask
+from utils.skin_tone import face_ita
 import yaml 
-from Binary_search_calibration_system import calibrate_grade, apply_reciep
+from Inflammatory.Binary_search_calibration_system import calibrate_grade, apply_reciep
 BIOSKIN_REPO = None
 
 if BIOSKIN_REPO and BIOSKIN_REPO not in sys.path:

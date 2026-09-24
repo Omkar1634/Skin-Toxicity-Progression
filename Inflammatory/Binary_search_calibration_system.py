@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import argparse
 import yaml
-from helper import compute_a_star, in_mask_mean, make_chromophore_composite, PARAM_NAMES, PARAM_COLORMAPS, save_chromophore_column
+from utils.helper import compute_a_star, in_mask_mean, make_chromophore_composite, PARAM_NAMES, PARAM_COLORMAPS, save_chromophore_column
 
     
     
