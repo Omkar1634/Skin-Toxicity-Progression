@@ -3,7 +3,7 @@ import csv
 import numpy as np
 import torch
 import cv2
-from helper import save_montage, save_control_curve, print_composite_deltas,make_chromophore_composite, save_control_allcurve,save_chromophore_column, compute_a_star
+from helper import save_montage, save_control_curve,save_chromophore_maps,  print_composite_deltas,make_chromophore_composite, save_control_allcurve,save_chromophore_column, compute_a_star
 
 
 def in_mask_mean(col, inside_bool):
@@ -18,7 +18,7 @@ def _in_mask_redness(flush_rgb, inside_bool):
 
 def run_hemoglobin_oxy_direction(skin_props, mask_flat, mask, inside, outside,
                                  bio_skin, ref_vis_rgb, shape, prog_dir,
-                                 io, C, A, use_cpu=False, target_amp=None,
+                                 io, C, A, P, use_cpu=False, target_amp=None,
                                  hemo_levels=None, clean_a_star=0.0):
     """
 
@@ -30,6 +30,11 @@ def run_hemoglobin_oxy_direction(skin_props, mask_flat, mask, inside, outside,
     MEL  = C["MELANIN_INDEX"]
     OXY  = C["HAEMO_TYPE_INDEX"]
     EU   = C["MELANIN_TYPE_INDEX"]
+    
+    paths = P["ALBEDO_PATH"]
+    
+    face_id = os.path.splitext(os.path.basename(paths))[0]
+
 
     Amplitude= A
     print(F"\n OXY boost at {Amplitude['OXY_Boost']:.3f}")
@@ -59,11 +64,12 @@ def run_hemoglobin_oxy_direction(skin_props, mask_flat, mask, inside, outside,
         
         _, flush_rgb, _, _ = bio_skin.skin_props_to_reflectance(sp)
         
-        io.save_tensor_to_image(os.path.join(prog_dir, f"frame_{i:02d}_amp{amp:.2f}"),
-                                        flush_rgb, shape, channels=3, cpu=use_cpu)
+        cea_labels = {1: "1", 2: "2", 3: "3", 4: "4"}
+        grade_label = cea_labels.get(i, f"grade_{i}")
+        io.save_tensor_to_image(os.path.join(prog_dir, f"cea_{face_id}_{grade_label}"),
+                        flush_rgb, shape, channels=3, cpu=use_cpu)
         
-        save_chromophore_column(skin_props, sp, shape,
-                        os.path.join(prog_dir, f"chromo_amp{amp:.2f}.png"))
+        save_chromophore_maps(skin_props, sp, shape, prog_dir, suffix=f"cea_{face_id}_{grade_label}")
         
         diff = (flush_rgb - ref_vis_rgb)[inside]
         contrast = float(torch.sqrt((diff ** 2).sum(dim=1)).mean().detach())

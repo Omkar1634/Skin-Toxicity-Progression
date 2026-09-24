@@ -35,7 +35,7 @@ import torch
 import cv2
 import argparse
 import datetime 
-from helper import  compute_a_star, in_mask_mean, make_chromophore_composite, PARAM_NAMES, PARAM_COLORMAPS, save_chromophore_column, save_montage, save_control_curve, save_control_allcurve, save_metadata_csv,ita_to_fitzpatrick
+from helper import  compute_a_star, in_mask_mean, make_chromophore_composite, PARAM_NAMES, PARAM_COLORMAPS, save_chromophore_column, save_montage, save_control_curve, save_control_allcurve, save_metadata_csv,ita_to_fitzpatrick, save_chromophore_maps
 from oxy_direction_test import run_oxy_direction_test
 from hemoglobin_direction import run_hemoglobin_direction
 from mixes_sweep import run_hemoglobin_oxy_direction
@@ -89,6 +89,8 @@ def main():
     chromophore = config["chromophore_parameter"]
     amplitude = config["amplitude_parameter"]
     mask_config = config["mask_parameter"]
+    face_id = os.path.splitext(os.path.basename(paths["ALBEDO_PATH"]))[0]
+
 
     bioskin_repo = paths.get("BIOSKIN_REPO")
     if bioskin_repo and bioskin_repo not in sys.path:
@@ -114,7 +116,8 @@ def main():
     print(f"[p1] skin_props.shape = {tuple(skin_props.shape)}")
     print(f"[p1] reconstruction error = {reconstruction_error.mean().item():.6f}")
 
-    bioskin_io.save_tensor_to_image(os.path.join(output_dir, "frame_00_amp0.00"),reference_rgb, shape, channels=3, cpu=use_cpu)
+    bioskin_io.save_tensor_to_image(os.path.join(output_dir, face_id + ".png"),reference_rgb, shape, channels=3, cpu=use_cpu)
+    
 
     mask = butterfly_mask(height, width)
     mask_flat = torch.from_numpy(mask.reshape(-1)).to(device)
@@ -180,7 +183,9 @@ def main():
 
     # ── save mask / chromo BEFORE metadata (no dependencies) ──────
     bioskin_io.save_tensor_to_image(os.path.join(output_dir, "mask_feathered"), mask_flat.float(), shape, channels=1, cpu=use_cpu)
-    save_chromophore_column(skin_props, skin_props, shape, os.path.join(output_dir, "chromo_amp0.00.png"))
+    # save_chromophore_column(skin_props, skin_props, shape, os.path.join(output_dir, "original.png"))
+    save_chromophore_maps(skin_props, skin_props, shape, output_dir, suffix=f"{face_id}")
+
 
     # ── ITA + clean chromophores (must precede metadata) ──────────
     ita_result = face_ita(paths["ALBEDO_PATH"], mask)
@@ -206,7 +211,6 @@ def main():
         "oxygenation":clean_oxygenation,
         "eumelanin":  clean_eumelanin,
     }
-    face_id = os.path.splitext(os.path.basename(paths["ALBEDO_PATH"]))[0]
     save_metadata_csv(
         output_dir         = output_dir,
         face_id            = face_id,
@@ -235,7 +239,7 @@ def main():
         inside=inside, outside=outside,
         bio_skin=bio_skin, ref_vis_rgb=reference_rgb,
         shape=shape, prog_dir=output_dir,
-        io=bioskin_io, C=chromophore, A=amplitude,
+        io=bioskin_io, C=chromophore, A=amplitude, P=paths,
         use_cpu=use_cpu, target_amp=calibrated_levels[-1],
         hemo_levels=calibrated_levels, clean_a_star=clean_a_star,
     )
