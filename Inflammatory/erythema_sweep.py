@@ -104,7 +104,14 @@ def main():
     from bioskin.bioskin import BioSkinInference
     import bioskin.utils.io as bioskin_io
 
-    output_dir = create_output_directory(paths["OUTPUT_DIR"])
+    raw_out = paths["OUTPUT_DIR"]
+    if os.path.basename(raw_out) == face_id:
+        # batch runner already set output_root/000000/ — use it as-is
+        output_dir = raw_out
+        os.makedirs(output_dir, exist_ok=True)
+    else:
+        # interactive: keep existing timestamped behaviour
+        output_dir = create_output_directory(raw_out)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     use_cpu = device.type == "cpu"
     print(f"[init] device = {device}")
