@@ -3,7 +3,6 @@ paths:
   MODEL_PREFIX: "D:\\Github\\PhD Code\\Erythema-Progression\\BioSkin\\BioSkinAO"
   ALBEDO_PATH: "D:\\Github\\PhD Code\\Erythema-Progression\\data\\000000.png"
   ALBEDO_DIR: "D:\\Github\\PhD Code\\Biophysical-LDM\\dataset\\Albedo-UV"
-  OUTPUT_ROOT: "D:\\Github\\PhD Code\\Erythema-Progression\\output\\1000-identities\\"
   OUTPUT_DIR: "D:\\Github\\PhD Code\\Erythema-Progression\\output\\test-results\\24-sep\\"
   mask : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\major_valid_whole_mask.png"
   mask_cen : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\center_face_mask.png"

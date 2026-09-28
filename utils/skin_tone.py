@@ -56,21 +56,34 @@ def _band(ita):
     return "dark"
 
 
-def face_ita(albedo_path, mask, mask_threshold=0.99):
-    """ITA of the in-mask skin pixels of one FFHQ-UV albedo PNG."""
+def face_ita(albedo_path, mask=None, mask_threshold=0.99):
+    """ITA of the in-mask skin pixels of one FFHQ-UV albedo PNG.
+
+    When mask is None, the centre 50% crop is used as a face-skin proxy
+    so the function can be called from a pre-scan without a butterfly mask.
+    """
     albedo = cv2.imread(albedo_path, cv2.IMREAD_COLOR)   # BGR uint8
     if albedo is None:
         raise FileNotFoundError(albedo_path)
-    
-    H, W = mask.shape[:2]                                 # <-- add
-    if albedo.shape[:2] != (H, W):                        # <-- add
-        albedo = cv2.resize(albedo, (W, H), interpolation=cv2.INTER_AREA)
 
     rgb = albedo[..., ::-1].astype(np.float64) / 255.0   # BGR->RGB, [0,1]
     # sRGB gamma -> linear light
     rgb = np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
 
-    px = rgb[mask >= mask_threshold]                     # solid-in-mask only
+    if mask is None:
+        # Centre 50% crop as face-skin proxy (no butterfly mask needed)
+        H, W = rgb.shape[:2]
+        cy, cx = H // 2, W // 2
+        h4, w4 = H // 4, W // 4
+        px = rgb[cy - h4:cy + h4, cx - w4:cx + w4].reshape(-1, 3)
+    else:
+        H, W = mask.shape[:2]
+        if albedo.shape[:2] != (H, W):
+            albedo = cv2.resize(albedo, (W, H), interpolation=cv2.INTER_AREA)
+            rgb = albedo[..., ::-1].astype(np.float64) / 255.0
+            rgb = np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
+        px = rgb[mask >= mask_threshold]
+
     if px.shape[0] < 256:
         raise ValueError(f"only {px.shape[0]} in-mask pixels for {albedo_path}")
 

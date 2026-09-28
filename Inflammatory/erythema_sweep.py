@@ -125,8 +125,8 @@ def main():
     shape = image.shape
     reflectance = bioskin_io.vectorize_image(image, device=device)
     skin_props, _, reference_rgb, _, _, reconstruction_error = bio_skin.reconstruct(reflectance)
-    print(f"[p1] skin_props.shape = {tuple(skin_props.shape)}")
-    print(f"[p1] reconstruction error = {reconstruction_error.mean().item():.6f}")
+    #print(f"[p1] skin_props.shape = {tuple(skin_props.shape)}")
+    #print(f"[p1] reconstruction error = {reconstruction_error.mean().item():.6f}")
 
     bioskin_io.save_tensor_to_image(os.path.join(output_dir, face_id + ".png"),reference_rgb, shape, channels=3, cpu=use_cpu)
     
@@ -139,7 +139,7 @@ def main():
     
     # print(f"Computing the a* value for the flush_rgb image using OpenCV's LAB conversion.")
     clean_a_star = compute_a_star(reference_rgb, inside)
-    print(f"[p1] clean a* = {clean_a_star:.4f}")
+    #print(f"[p1] clean a* = {clean_a_star:.4f}")
     
     # ── PUT THE FLOOR BLOCK HERE ────────────────────────────────────
     sp_floor = skin_props.clone()
@@ -149,7 +149,7 @@ def main():
         sp_floor[:, chromophore["HAEMO_TYPE_INDEX"]] + float(amplitude["OXY_Boost"]) * mask_flat, 0, 1)
     _, floor_rgb, _, _ = bio_skin.skin_props_to_reflectance(sp_floor)
     floor_a_star = compute_a_star(floor_rgb, inside)
-    print(f"[p1] recipe floor a* = {floor_a_star:.4f}  floor Δa* = {floor_a_star - clean_a_star:.4f}")
+    #print(f"[p1] recipe floor a* = {floor_a_star:.4f}  floor Δa* = {floor_a_star - clean_a_star:.4f}")
     
     
     probe_amps   = [0.02, 0.05, 0.08, 0.12, 0.18, 0.25, 0.35]
@@ -160,7 +160,7 @@ def main():
     peak_idx  = int(np.argmax(probe_deltas))
     face_high = probe_amps[peak_idx]
     max_delta = probe_deltas[peak_idx]
-    print(f"[p1] face ceiling: amp={face_high:.3f}  max Δa*={max_delta:.3f}")
+    #print(f"[p1] face ceiling: amp={face_high:.3f}  max Δa*={max_delta:.3f}")
 
     
         # ── calibration pre-pass ──────────────────────────────────────
@@ -182,7 +182,7 @@ def main():
             max_iterations=6
         )
         calibrated[grade_name] = {"amp": float(amp), "redness": float(redness)}
-        print(f"[calib] {grade_name}: amp={amp:.4f}  redness={redness:.4f}")
+        #print(f"[calib] {grade_name}: amp={amp:.4f}  redness={redness:.4f}")
 
     calibrated_levels = [calibrated[g]["amp"] for g in calibrated]
     calibrated_grades = [
@@ -201,7 +201,7 @@ def main():
 
     # ── ITA + clean chromophores (must precede metadata) ──────────
     ita_result = face_ita(paths["ALBEDO_PATH"], mask)
-    print(f"[p1] Fitzpatrick skin tone: {ita_result['ita']:.2f} ({ita_result['band']})")
+    #print(f"[p1] Fitzpatrick skin tone: {ita_result['ita']:.2f} ({ita_result['band']})")
 
     BLOOD_VOLUME_INDEX = chromophore["BLOOD_VOLUME_INDEX"]
     melanin_index      = chromophore["MELANIN_INDEX"]
@@ -211,10 +211,10 @@ def main():
     clean_melanin      = in_mask_mean(skin_props[:, melanin_index],      inside)
     clean_oxygenation  = in_mask_mean(skin_props[:, HAEMO_TYPE_INDEX],   inside)
     clean_eumelanin    = in_mask_mean(skin_props[:, eumelanin_index],    inside)
-    print(f"[p1] Original Hemoglobin = {clean_hemoglobin:.4f}")
-    print(f"[p1] Original Melanin    = {clean_melanin:.4f}")
-    print(f"[p1] Original Oxygenation = {clean_oxygenation:.4f}")
-    print(f"[p1] Original Eumelanin  = {clean_eumelanin:.4f}")
+    #print(f"[p1] Original Hemoglobin = {clean_hemoglobin:.4f}")
+    #print(f"[p1] Original Melanin    = {clean_melanin:.4f}")
+    #print(f"[p1] Original Oxygenation = {clean_oxygenation:.4f}")
+    #print(f"[p1] Original Eumelanin  = {clean_eumelanin:.4f}")
 
     # ── metadata CSV (all variables now defined) ──────────────────
     clean_chromophores = {
@@ -241,9 +241,9 @@ def main():
                                 amplitude["AMP_STOP"] + amplitude["AMP_STEP"] / 2.0,
                                 amplitude["AMP_STEP"]), 3)
     target_amplitude = float(levels[-1]) if COMPOSITE_AMP is None else float(COMPOSITE_AMP)
-    print(f" amplitude start: {amplitude['AMP_START']:.3f}, stop: {amplitude['AMP_STOP']:.3f}, step: {amplitude['AMP_STEP']:.3f}")
-    print(f"\n[sweep] amplitude levels: {list(levels)}")
-    print(f"[sweep] target amplitude: {target_amplitude:.2f}")
+    #print(f" amplitude start: {amplitude['AMP_START']:.3f}, stop: {amplitude['AMP_STOP']:.3f}, step: {amplitude['AMP_STEP']:.3f}")
+    #print(f"\n[sweep] amplitude levels: {list(levels)}")
+    #print(f"[sweep] target amplitude: {target_amplitude:.2f}")
     sp_composite, amp_composite = None, None
 
     rows = run_hemoglobin_oxy_direction(

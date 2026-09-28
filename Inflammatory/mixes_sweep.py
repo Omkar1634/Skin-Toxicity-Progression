@@ -45,11 +45,13 @@ def run_hemoglobin_oxy_direction(skin_props, mask_flat, mask, inside, outside,
     mel_clean_in  = in_mask_mean(skin_props[:, MEL],  inside)
     oxy_clean_in  = in_mask_mean(skin_props[:, OXY],  inside)
     eu_clean_in   = in_mask_mean(skin_props[:, EU],   inside)
-    print(f"\n[hemoA] hemoglobin at {hemo_clean_in:.2f} (constant every frame)")
-    print(f"[hemoA] sweeping hemoglobin over {list(hemo_levels)}")
-    print(f"\n  {'idx':>3} {'amp':>6} {'contrast':>9} "
-              f"{'hemoIn->':>9} {'after':>7} {'melDrift':>9} {'outDrift':>9} {'oxyOutDrift':>9} {'euOutDrift':>9} {'redness':>9}")
-    print("  " + "-" * 72)
+    #print(f"\n[hemoA] hemoglobin at {hemo_clean_in:.2f} (constant every frame)")
+    #print(f"[hemoA] melanic at {mel_clean_in:.2f} (constant every frame)")
+    #print(f"[hemoA] oxygenation at {oxy_clean_in:.2f} (constant every frame)")
+    #print(f"[hemoA] eumelanin at {eu_clean_in:.2f} (constant every frame)")
+    # print(f"[hemoA] sweeping hemoglobin over {list(hemo_levels)}")
+    #print(f"\n  {'idx':>3} {'amp':>6} {'contrast':>9} " f"{'hemoIn->':>9} {'after':>7} {'melDrift':>9} {'outDrift':>9} {'oxyOutDrift':>9} {'euOutDrift':>9} {'redness':>9}")
+    #print("  " + "-" * 72)
     sp_composite, amp_composite = None, None   # add these TWO lines before the loop
     rows = []
     for i, amp in enumerate(hemo_levels, start=1):
@@ -93,8 +95,7 @@ def run_hemoglobin_oxy_direction(skin_props, mask_flat, mask, inside, outside,
         redness      = flush_a_star - clean_a_star
 
         
-        print(f"  {i:>3} {amp:>6.2f} {contrast:>9.4f} " f"{hemo_clean_in:>9.4f} {hemo_after_in:>7.4f} " 
-                      f"{mel_drift:>+9.4f} {out_drift:>+9.4f} {oxy_out_drift:>+9.4f}  {eu_drift:>+9.4f} {redness:>+9.4f} ")
+        #print(f"  {i:>3} {amp:>6.2f} {contrast:>9.4f} " f"{hemo_clean_in:>9.4f} {hemo_after_in:>7.4f} " f"{mel_drift:>+9.4f} {out_drift:>+9.4f} {oxy_out_drift:>+9.4f}  {eu_drift:>+9.4f} {redness:>+9.4f} ")
         
         rows.append({
             'index': i, 'residual_amp': float(amp), 'in_mask_contrast': contrast,
@@ -115,7 +116,7 @@ def run_hemoglobin_oxy_direction(skin_props, mask_flat, mask, inside, outside,
     with open(csv_path, 'w', newline='') as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         w.writeheader(); w.writerows(rows)
-    print(f"\n[out] CSV -> {csv_path}")
+    #print(f"\n[out] CSV -> {csv_path}")
     
     save_montage(prog_dir)
     save_control_curve(prog_dir, rows, hemo_clean_in)
@@ -128,8 +129,8 @@ def run_hemoglobin_oxy_direction(skin_props, mask_flat, mask, inside, outside,
             deltas = make_chromophore_composite(
                 skin_props, sp_composite, shape, mask, composite_path,
                 f"{amp_composite:.2f}")
-            print(f"[out] chromophore composite -> {composite_path}")
-            print_composite_deltas(deltas)
+           # print(f"[out] chromophore composite -> {composite_path}")
+            #print_composite_deltas(deltas)
         except Exception as error:
             print(f"[out] skipped composite: {error}")
 
