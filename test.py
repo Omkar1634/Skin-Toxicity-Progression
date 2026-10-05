@@ -230,17 +230,44 @@
 
 
 
-import os, glob, re
+# import os, glob, re
 
-albedo_dir = r"D:\Github\PhD Code\Biophysical-LDM\dataset\Albedo-UV"
-VARIANT_RE = re.compile(r"^\d{6}_cof_a\d+_final_uv$")
+# albedo_dir = r"D:\Github\PhD Code\Biophysical-LDM\dataset\Albedo-UV"
+# VARIANT_RE = re.compile(r"^\d{6}_cof_a\d+_final_uv$")
 
-to_delete = [
-    p for p in glob.glob(os.path.join(albedo_dir, "*.png"))
-    if VARIANT_RE.fullmatch(os.path.splitext(os.path.basename(p))[0])
-]
+# to_delete = [
+#     p for p in glob.glob(os.path.join(albedo_dir, "*.png"))
+#     if VARIANT_RE.fullmatch(os.path.splitext(os.path.basename(p))[0])
+# ]
 
-print(f"Deleting {len(to_delete)} files...")
-for p in to_delete:
-    os.remove(p)
-print("Done.")
+# print(f"Deleting {len(to_delete)} files...")
+# for p in to_delete:
+#     os.remove(p)
+# print("Done.")
+
+from pathlib import Path
+import shutil
+
+# Path to your 1000-identities folder
+base_dir = Path(r"D:\Github\PhD Code\Erythema-Progression\output\1000-identities")
+
+expected_count = 43
+deleted_count = 0
+
+# Iterate through all subfolders
+for folder in base_dir.iterdir():
+  if folder.is_dir():
+    # Count files
+    file_count = sum(1 for f in folder.iterdir() if f.is_file())
+
+    if file_count != expected_count:
+      print(
+          f"Deleting folder {folder.name}: contained {file_count} files"
+          f" (Expected {expected_count})"
+      )
+      # Completely remove the folder and its contents
+      shutil.rmtree(folder)
+      deleted_count += 1
+
+print("-" * 40)
+print(f"Cleanup complete. Successfully deleted {deleted_count} folders.")

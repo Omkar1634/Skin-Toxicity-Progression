@@ -307,7 +307,7 @@ def save_montage(output_dir):
             c = cv2.vconcat([c, pad])
         padded.append(c)
 
-    montage_path = os.path.join(output_dir, "erythema_progression_montage.jpeg")
+    montage_path = os.path.join(output_dir, "erythema_progression_montage.png")
     cv2.imwrite(montage_path, cv2.hconcat(padded))
     print(f"[out] montage -> {montage_path}")
 
