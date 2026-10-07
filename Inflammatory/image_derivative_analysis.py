@@ -284,9 +284,9 @@ def process_face(face_dir: Path, output_dir: Path) -> list[dict]:
 
 def main():
     # ── Configure paths here ─────────────────────────────────────────────────
-    INPUT_FOLDER  = r"D:\Github\PhD Code\Erythema-Progression\output\1000-identities"
-    OUTPUT_FOLDER = r"D:\Github\PhD Code\Erythema-Progression\output\derivative_analysis\052609"
-    FACE_IDS      = ["052609"]   # None = process ALL faces
+    INPUT_FOLDER  = r"D:\Github\PhD Code\Erythema-Progression\output\1200-identities"
+    OUTPUT_FOLDER = r"D:\Github\PhD Code\Erythema-Progression\output\derivative_analysis"
+    FACE_IDS      = None  # None = process ALL faces
                            # or e.g. ["000180", "000063"] to test a subset first
     # ─────────────────────────────────────────────────────────────────────────
 

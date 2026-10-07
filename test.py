@@ -1,3 +1,41 @@
+import pandas as pd
+from pathlib import Path
+
+FFHQ_UV_DIR = r'D:\\Github\\PhD Code\\Biophysical-LDM\\dataset\\Albedo-UV'   # <-- adjust to your albedo/UV folder
+ITA_CSV      = r'D:\Github\PhD Code\Erythema-Progression\utils\ita_scan.csv'
+SELECTED_CSV = r'D:\Github\PhD Code\Erythema-Progression\Inflammatory\selected_identities_stratified.csv'
+OUT_CSV      = r'D:\Github\PhD Code\Erythema-Progression\Inflammatory\replacements_fitz6.csv'
+
+already = set(pd.read_csv(SELECTED_CSV)['face_id'].astype(int))
+
+df = pd.read_csv(ITA_CSV)
+fitz6 = df[df['fitzpatrick'] == 'VI'].copy()
+fitz6 = fitz6[~fitz6['face_id'].astype(int).isin(already)]
+
+# Keep only IDs whose albedo file actually exists on disk
+def exists(fid):
+    zid = str(int(fid)).zfill(6)
+    # adjust the glob pattern to match your folder structure
+    return len(list(Path(FFHQ_UV_DIR).rglob(f'*{zid}*'))) > 0
+
+fitz6['exists'] = fitz6['face_id'].apply(exists)
+valid = fitz6[fitz6['exists']].copy()
+
+print(f'Valid Fitz VI candidates on disk: {len(valid)}')
+
+if len(valid) >= 137:
+    sampled = valid.sample(137, random_state=99)
+    sampled.to_csv(OUT_CSV, index=False)
+    print(f'Saved {len(sampled)} replacements -> {OUT_CSV}')
+else:
+    print(f'Only {len(valid)} found — saving all of them')
+    valid.to_csv(OUT_CSV, index=False)
+
+
+
+
+
+
 # """
 # ita_one_face.py -- load ONE face, build the butterfly mask, print its ITA.
 
@@ -245,29 +283,29 @@
 #     os.remove(p)
 # print("Done.")
 
-from pathlib import Path
-import shutil
+# from pathlib import Path
+# import shutil
 
-# Path to your 1000-identities folder
-base_dir = Path(r"D:\Github\PhD Code\Erythema-Progression\output\1000-identities")
+# # Path to your 1000-identities folder
+# base_dir = Path(r"D:\Github\PhD Code\Erythema-Progression\output\1000-identities")
 
-expected_count = 43
-deleted_count = 0
+# expected_count = 43
+# deleted_count = 0
 
-# Iterate through all subfolders
-for folder in base_dir.iterdir():
-  if folder.is_dir():
-    # Count files
-    file_count = sum(1 for f in folder.iterdir() if f.is_file())
+# # Iterate through all subfolders
+# for folder in base_dir.iterdir():
+#   if folder.is_dir():
+#     # Count files
+#     file_count = sum(1 for f in folder.iterdir() if f.is_file())
 
-    if file_count != expected_count:
-      print(
-          f"Deleting folder {folder.name}: contained {file_count} files"
-          f" (Expected {expected_count})"
-      )
-      # Completely remove the folder and its contents
-      shutil.rmtree(folder)
-      deleted_count += 1
+#     if file_count != expected_count:
+#       print(
+#           f"Deleting folder {folder.name}: contained {file_count} files"
+#           f" (Expected {expected_count})"
+#       )
+#       # Completely remove the folder and its contents
+#       shutil.rmtree(folder)
+#       deleted_count += 1
 
-print("-" * 40)
-print(f"Cleanup complete. Successfully deleted {deleted_count} folders.")
+# print("-" * 40)
+# print(f"Cleanup complete. Successfully deleted {deleted_count} folders.")
