@@ -48,9 +48,10 @@ from scipy import stats
 #  CONFIGURE PATHS HERE
 # ══════════════════════════════════════════════════════════════════════════════
 
-INPUT_FOLDER    = r"D:\Github\PhD Code\Erythema-Progression\output\1200-identities"
-OUTPUT_FOLDER   = r"D:\Github\PhD Code\Erythema-Progression\output\derivative_analysis"
-SELECTED_CSV    = r"D:\Github\PhD Code\Erythema-Progression\Inflammatory\selected_identities_stratified.csv"
+
+INPUT_FOLDER    = r"D:\Github\PhD Code\Erythema-Progression\output\Dark-hypothesis_v3"
+OUTPUT_FOLDER   = r"D:\Github\PhD Code\Erythema-Progression\output\derivative_analysis_dark\\v3"
+SELECTED_CSV    = r"D:\Github\PhD Code\Erythema-Progression\Inflammatory\dark_skin_experiment.csv"
 REPLACEMENTS_CSV= r"D:\Github\PhD Code\Erythema-Progression\Inflammatory\replacements_fitz6.csv"
 
 FACE_IDS = None   # None = all faces; or e.g. ["000180", "000063"] for a quick test

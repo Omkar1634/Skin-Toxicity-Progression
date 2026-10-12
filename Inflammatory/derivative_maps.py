@@ -28,9 +28,9 @@ from pathlib import Path
 # ─────────────────────────────────────────────
 # CONFIGURE THESE PATHS
 # ─────────────────────────────────────────────
-OUTPUT_FOLDER = r"D:\Github\PhD Code\Erythema-Progression\output\1200-identities"
-METRICS_CSV   = r"D:\Github\PhD Code\Erythema-Progression\output\derivative_analysis\multichannel_metrics.csv"
-SAVE_FOLDER   = r"D:\Github\PhD Code\Erythema-Progression\output\derivative_maps"
+OUTPUT_FOLDER = r"D:\Github\PhD Code\Erythema-Progression\output\Dark-hypothesis_v3"
+METRICS_CSV   = r"D:\Github\PhD Code\Erythema-Progression\output\derivative_analysis_dark\multichannel_metrics.csv"
+SAVE_FOLDER   = r"D:\Github\PhD Code\Erythema-Progression\output\derivative_maps_dark//v3"
 # ─────────────────────────────────────────────
 
 os.makedirs(SAVE_FOLDER, exist_ok=True)

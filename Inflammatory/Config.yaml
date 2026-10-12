@@ -2,8 +2,8 @@ paths:
   BIOSKIN_REPO: null
   MODEL_PREFIX: "D:\\Github\\PhD Code\\Erythema-Progression\\BioSkin\\BioSkinAO"
   ALBEDO_PATH: "D:\\Github\\PhD Code\\Erythema-Progression\\data\\000000.png"
-  ALBEDO_DIR: "D:\\Github\\PhD Code\\Biophysical-LDM\\dataset\\Albedo-UV"
-  OUTPUT_ROOT: "D:\\Github\\PhD Code\\Erythema-Progression\\output\\1200-identities\\"
+  ALBEDO_DIR: "F:\\Albedo-UV"
+  OUTPUT_ROOT: "D:\\Github\\PhD Code\\Erythema-Progression\\output\\Dark-hypothesis_v3"
   OUTPUT_DIR: "D:\\Github\\PhD Code\\Erythema-Progression\\output\\test-results\\24-sep\\"
   mask : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\major_valid_whole_mask.png"
   mask_cen : "D:\\Github\\PhD Code\\Erythema-Progression\\FFHQ-UV\\topo_assets\\center_face_mask.png"
@@ -32,8 +32,8 @@ amplitude_parameter:
   AMP_START: 0.01
   AMP_STOP: 0.15
   AMP_STEP: 0.04
-  OXY_Boost: -0.15
-  EU_Boost: 0.10
+  OXY_Boost: 0.15
+  EU_Boost: -0.20
 
 
 severity_parameter:
