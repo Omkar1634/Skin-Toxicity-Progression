@@ -1,35 +1,243 @@
+# import pandas as pd
+
+# metrics = pd.read_csv(r"D:\Github\PhD Code\Erythema-Progression\output\derivative_analysis\derivative_metrics.csv")
+# selected = pd.read_csv(r"D:\Github\PhD Code\Erythema-Progression\Inflammatory\selected_identities_stratified.csv")
+
+# # Normalise face_id to match
+# metrics['face_id_int'] = metrics['face_id'].astype(str).str.zfill(6).astype(int) if metrics['face_id'].dtype == object else metrics['face_id'].astype(int)
+# selected['face_id_int'] = selected['face_id'].astype(int)
+
+# merged = metrics.merge(selected[['face_id_int','fitzpatrick','ita']], on='face_id_int', how='left')
+
+# # Table 1: Mean ± std of mean_inside per grade step × Fitzpatrick type
+# table1 = merged.groupby(['fitzpatrick','grade_step'])['mean_inside'].agg(['mean','std']).round(4)
+# print(table1.to_string())
+# table1.to_csv(r"D:\Github\PhD Code\Erythema-Progression\output\derivative_analysis\table1_fitz_grade.csv")
+
+
 import pandas as pd
-from pathlib import Path
+from scipy import stats
 
-FFHQ_UV_DIR = r'D:\\Github\\PhD Code\\Biophysical-LDM\\dataset\\Albedo-UV'   # <-- adjust to your albedo/UV folder
-ITA_CSV      = r'D:\Github\PhD Code\Erythema-Progression\utils\ita_scan.csv'
-SELECTED_CSV = r'D:\Github\PhD Code\Erythema-Progression\Inflammatory\selected_identities_stratified.csv'
-OUT_CSV      = r'D:\Github\PhD Code\Erythema-Progression\Inflammatory\replacements_fitz6.csv'
+metrics  = pd.read_csv(r"D:\Github\PhD Code\Erythema-Progression\output\derivative_analysis\derivative_metrics.csv")
+selected = pd.read_csv(r"D:\Github\PhD Code\Erythema-Progression\Inflammatory\selected_identities_stratified.csv")
+replacements = pd.read_csv(r"D:\Github\PhD Code\Erythema-Progression\Inflammatory\replacements_fitz6.csv")
 
-already = set(pd.read_csv(SELECTED_CSV)['face_id'].astype(int))
+# Which Fitz VI IDs from selected are actually in metrics?
+metrics['face_id_int'] = metrics['face_id'].astype(str).str.lstrip('0').apply(lambda x: int(x) if x else 0)
+processed_ids = set(metrics['face_id_int'].unique())
 
-df = pd.read_csv(ITA_CSV)
-fitz6 = df[df['fitzpatrick'] == 'VI'].copy()
-fitz6 = fitz6[~fitz6['face_id'].astype(int).isin(already)]
+# Keep original selected rows that were processed, replace missing Fitz VI with replacements
+selected['face_id_int'] = selected['face_id'].astype(int)
+selected_processed = selected[selected['face_id_int'].isin(processed_ids)]
 
-# Keep only IDs whose albedo file actually exists on disk
-def exists(fid):
-    zid = str(int(fid)).zfill(6)
-    # adjust the glob pattern to match your folder structure
-    return len(list(Path(FFHQ_UV_DIR).rglob(f'*{zid}*'))) > 0
+replacements['face_id_int'] = replacements['face_id'].astype(int)
+replacements_processed = replacements[replacements['face_id_int'].isin(processed_ids)][['face_id_int','ita','fitzpatrick']]
 
-fitz6['exists'] = fitz6['face_id'].apply(exists)
-valid = fitz6[fitz6['exists']].copy()
+lookup = pd.concat([
+    selected_processed[['face_id_int','ita','fitzpatrick']],
+    replacements_processed
+], ignore_index=True).drop_duplicates(subset='face_id_int')
 
-print(f'Valid Fitz VI candidates on disk: {len(valid)}')
+merged = metrics.merge(lookup, on='face_id_int', how='inner')
 
-if len(valid) >= 137:
-    sampled = valid.sample(137, random_state=99)
-    sampled.to_csv(OUT_CSV, index=False)
-    print(f'Saved {len(sampled)} replacements -> {OUT_CSV}')
-else:
-    print(f'Only {len(valid)} found — saving all of them')
-    valid.to_csv(OUT_CSV, index=False)
+print(f"Total faces in merged: {merged['face_id_int'].nunique()}")
+print("\nPearson r (ITA vs mean_inside Δa*) per grade step:")
+for step in sorted(merged['grade_step'].unique()):
+    sub = merged[merged['grade_step'] == step].dropna(subset=['ita','mean_inside'])
+    r, p = stats.pearsonr(sub['ita'], sub['mean_inside'])
+    print(f"  {step}: r = {r:.4f}, p = {p:.4e}, n = {len(sub)}")
+
+print("\nPer-Fitzpatrick table:")
+table = merged.groupby(['fitzpatrick','grade_step'])['mean_inside'].agg(['mean','std']).round(4)
+print(table.to_string())
+
+
+
+
+# import pandas as pd
+# from scipy import stats
+
+# metrics = pd.read_csv(r"D:\Github\PhD Code\Erythema-Progression\output\derivative_analysis\derivative_metrics.csv")
+# selected = pd.read_csv(r"D:\Github\PhD Code\Erythema-Progression\Inflammatory\selected_identities_stratified.csv")
+
+# metrics['face_id_int'] = metrics['face_id'].astype(str).str.lstrip('0').apply(lambda x: int(x) if x else 0)
+# selected['face_id_int'] = selected['face_id'].astype(int)
+# merged = metrics.merge(selected[['face_id_int','ita']], on='face_id_int', how='left')
+
+# print("Pearson r (ITA vs mean_inside Δa*) per grade step:")
+# for step in sorted(merged['grade_step'].unique()):
+#     sub = merged[merged['grade_step'] == step].dropna(subset=['ita','mean_inside'])
+#     r, p = stats.pearsonr(sub['ita'], sub['mean_inside'])
+#     print(f"  {step}: r = {r:.4f}, p = {p:.4e}, n = {len(sub)}")
+
+
+
+
+
+
+
+# import pandas as pd
+# import matplotlib.pyplot as plt
+# import matplotlib.lines as mlines
+# import numpy as np
+# from scipy import stats
+
+# # ── Load data ────────────────────────────────────────────────────────────────
+# metrics  = pd.read_csv(r"D:\Github\PhD Code\Erythema-Progression\output\derivative_analysis\derivative_metrics.csv")
+# selected = pd.read_csv(r"D:\Github\PhD Code\Erythema-Progression\Inflammatory\selected_identities_stratified.csv")
+
+# metrics['face_id_int']  = metrics['face_id'].astype(str).str.lstrip('0').apply(lambda x: int(x) if x else 0)
+# selected['face_id_int'] = selected['face_id'].astype(int)
+# merged = metrics.merge(selected[['face_id_int','ita','fitzpatrick']], on='face_id_int', how='left')
+
+# # ── Colour palette: light → dark skin tone ───────────────────────────────────
+# fitz_order  = ['I','II','III','IV','V','VI']
+# fitz_labels = ['I\n(very light)','II\n(light)','III\n(interm.)','IV\n(tan)','V\n(brown)','VI\n(dark)']
+# fitz_colors = ['#F4C8A0','#E8A87C','#C98060','#A0522D','#6B3A2A','#3B1A0E']
+# grade_steps = ['grade_0_to_1','grade_1_to_2','grade_2_to_3','grade_3_to_4']
+# grade_labels = ['0→1','1→2','2→3','3→4']
+
+# # ── Panel A: line plot per Fitzpatrick ───────────────────────────────────────
+# table = merged.groupby(['fitzpatrick','grade_step'])['mean_inside'].mean().unstack('grade_step')
+# table = table.reindex(fitz_order)[grade_steps]
+
+# fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+# fig.suptitle("Erythema Signal Attenuation Across Skin Tones (n = 1200)", fontsize=13, fontweight='bold', y=1.01)
+
+# ax = axes[0]
+# for i, (fitz, color) in enumerate(zip(fitz_order, fitz_colors)):
+#     vals = table.loc[fitz].values
+#     ax.plot(grade_labels, vals, marker='o', color=color, linewidth=2.2, markersize=7, label=f'Fitz {fitz}')
+# ax.set_xlabel("CEA Grade Step", fontsize=11)
+# ax.set_ylabel("Mean Δa* (inside butterfly mask)", fontsize=11)
+# ax.set_title("(A) Erythema Progression by Fitzpatrick Type", fontsize=11)
+# ax.legend(title="Fitzpatrick", fontsize=9, title_fontsize=9)
+# ax.set_ylim(bottom=0)
+# ax.grid(axis='y', alpha=0.3)
+# ax.spines[['top','right']].set_visible(False)
+
+# # ── Panel B: scatter ITA vs Δa* (grade 1→2) with regression ─────────────────
+# ax2 = axes[1]
+# sub = merged[merged['grade_step'] == 'grade_1_to_2'].dropna(subset=['ita','mean_inside','fitzpatrick'])
+
+# for fitz, color in zip(fitz_order, fitz_colors):
+#     s = sub[sub['fitzpatrick'] == fitz]
+#     ax2.scatter(s['ita'], s['mean_inside'], c=color, alpha=0.35, s=12, label=f'Fitz {fitz}')
+
+# # Regression line
+# x = sub['ita'].values
+# y = sub['mean_inside'].values
+# slope, intercept, r, p, _ = stats.linregress(x, y)
+# xr = np.linspace(x.min(), x.max(), 200)
+# ax2.plot(xr, slope * xr + intercept, 'k--', linewidth=1.8, label=f'r = {r:.3f}, p < 10⁻⁶⁴')
+
+# ax2.set_xlabel("ITA (Individual Typology Angle)", fontsize=11)
+# ax2.set_ylabel("Mean Δa* grade 1→2", fontsize=11)
+# ax2.set_title("(B) ITA vs Erythema Signal (Grade 1→2)", fontsize=11)
+# ax2.legend(fontsize=8.5, markerscale=1.5)
+# ax2.grid(alpha=0.3)
+# ax2.spines[['top','right']].set_visible(False)
+
+# plt.tight_layout()
+# out = r"D:\Github\PhD Code\Erythema-Progression\output\derivative_analysis\fig_attenuation.png"
+# plt.savefig(out, dpi=200, bbox_inches='tight')
+# plt.show()
+# print(f"Saved → {out}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
