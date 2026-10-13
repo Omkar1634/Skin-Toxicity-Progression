@@ -32,6 +32,7 @@ amplitude_parameter:
   AMP_START: 0.01
   AMP_STOP: 0.15
   AMP_STEP: 0.04
+  
   OXY_Boost: 0.15
   EU_Boost: -0.20
 
